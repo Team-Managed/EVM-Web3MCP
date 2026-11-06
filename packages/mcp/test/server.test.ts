@@ -82,8 +82,8 @@ test('tools discovered from ENS run reads and prepare writes', async () => {
   assert.equal(textOf(await call(client, 'vault_get_balance', { owner: '0x00000000000000000000000000000000000000aa' })), '10.5 USDC');
 
   const review = textOf(await call(client, 'call', { tool: 'tx_vault_deposit', args: { amount: '10' } }));
-  assert.match(review, /1\. usdc\.approve\(vault, 10000000\)/);
-  assert.match(review, /2\. vault\.deposit\(10000000\)/);
+  assert.match(review, /1\. usdc\.approve\(vault, 10 USDC\)/);
+  assert.match(review, /2\. vault\.deposit\(10 USDC\)/);
   assert.match(review, /USDC -10/);
 });
 

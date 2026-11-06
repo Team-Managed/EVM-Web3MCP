@@ -43,7 +43,7 @@ claude plugin install web3mcp@evm-web3mcp
 
 Codex: see [plugins/codex](plugins/codex/README.md).
 
-Both run `@web3mcp/mcp` from npm, which isn't published yet. Until then, use the development setup below.
+The plugin carries the server as one bundled file (`plugins/claude-code/server/`), so it needs only Node 22 or newer; nothing is downloaded from npm. Set your wallet address in the plugin's options so writes can be simulated.
 
 ## Develop
 

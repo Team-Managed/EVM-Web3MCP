@@ -68,6 +68,32 @@ codex mcp remove web3mcp
 
 Remove the locally installed skill folder separately if necessary.
 
+### Alternative: committed server bundle
+
+The Claude Code plugin also ships the shared server as a committed bundle, [web3mcp.mjs](../claude-code/server/web3mcp.mjs), with adjacent signing-page assets. This alternative needs a clone of the repository and Node 22+, without installing dependencies or building locally:
+
+```sh
+codex mcp add web3mcp -- node /path/to/EVM-Web3MCP/plugins/claude-code/server/web3mcp.mjs
+```
+
+Choose this registration instead of the local launcher registration above; do not register two servers under the same name. Keep the adjacent `server/approve` assets. Install the Codex skill from `plugins/codex/skills/web3mcp` as above. `npm run build` regenerates the bundle and assets; repository rules require committing them with SDK, server, or signing-page changes.
+
+The bundle runs the shared MCP entry point directly: it connects to Sepolia by default and does not use the launcher's `WEB3MCP_MODE` switch or configuration validation. Do not use it for the offline fixture verification below. `WEB3MCP_CHAIN=mainnet` selects mainnet in that entry point; keep `WEB3MCP_CHAIN=sepolia` for this guide. The tested Codex launcher remains Sepolia-only and defaults to fixtures.
+
+For either registration, configure the public wallet account and optionally ask Codex to prompt for writes in the user-level configuration. This example assumes the server is named `web3mcp`:
+
+```toml
+[mcp_servers.web3mcp]
+default_tools_approval_mode = "writes"
+
+[mcp_servers.web3mcp.env]
+WEB3MCP_CHAIN = "sepolia"
+WEB3MCP_ACCOUNT = "yourname.eth" # replace with your public address or ENS name, never a key
+WEB3MCP_RPC_URL = ""
+```
+
+Merge these settings into existing tables. When using the local launcher for live work, also set `WEB3MCP_MODE="live"` as below. Discovered read tools have read-only annotations; the generic `call` fallback does not. Codex approval policy does not replace explicit authorization for preparation or the user's wallet confirmation. Bundle setup is an implementation-supported alternative, not part of the historical launcher verification recorded below.
+
 ## Live ENS configuration
 
 Edit the environment table of the existing Codex MCP registration (do not duplicate it):
@@ -207,7 +233,7 @@ Installing the plugin alone does not automatically register the MCP server.
 
 Automatic plugin installation and cache activation have not been verified.
 
-The shared SDK prepares and simulates write calls, including allowance checks and asset changes. The shared MCP serves the signing page and tracks results through `status`; no separate signing implementation lives in this plugin. The page uses an injected browser wallet, batching when supported or submitting sequentially with confirmation between steps. Sequential execution can partially complete before a later failure. Approval records are held in memory and are lost on server restart. Wallet-controlled submission costs Sepolia gas; simulation alone does not. No signing credentials are accepted by the launcher or agent.
+The shared SDK prepares and simulates write calls, including allowance checks and asset changes. The shared MCP serves the signing page and tracks results through `status`; no separate signing implementation lives in this plugin. The current SDK supplies readable step metadata, including contract, method, and arguments. The signing page presents a step-by-step wallet-to-contract flow, ETH value, trust information, and wallet/confirmation progress with transaction links. These presentation updates do not authorize signing or establish actual token receipts; the manual verification snapshot above predates these incoming UI updates. The page uses an injected browser wallet, batching when supported or submitting sequentially with confirmation between steps. Sequential execution can partially complete before a later failure. Approval records are held in memory and are lost on server restart. Wallet-controlled submission costs Sepolia gas; simulation alone does not. No signing credentials are accepted by the launcher or agent.
 
 Simulation uses head minus two blocks. State and prices can change before signing; simulated asset changes do not guarantee actual USDC output or establish total gas cost. `status` checks receipt success for hashes reported by the page, but does not expose transfer logs or actual token changes. A current balance read alone cannot establish the amount received in a particular transaction. Successful receipt confirmation is not a finality-depth guarantee.
 
