@@ -20,10 +20,20 @@ Sibling project: [Team-Managed/Solana-Web3MCP](https://github.com/Team-Managed/S
 
 ## Working here
 
-- Node 24 for development (`.nvmrc`); published packages support Node 22+. Use npm.
-- `npm ci`, then `npm test`: builds every package, type-checks the tests, then runs them.
+- Node 24 for development (`.nvmrc`); published packages support Node 22+. Use npm only: no pnpm, Bun or Yarn lockfiles.
+- `npm ci`, then `npm test`: builds every package, type-checks the tests, then runs them. Run `npm test` before every push.
 - Everything is TypeScript. Tests are `.test.ts` files that Node runs directly, so import types with `import type`; the typecheck enforces it.
 - Contracts use Foundry: `cd contracts && forge test`.
-- Commit small and often. ETHGlobal and the sponsors read the git history.
-- Note AI assistance in commit messages, per ETHGlobal's AI policy.
-- Never commit wallet files, private keys, API keys or `.env` files.
+
+## Team rules for the hackathon
+
+Follow these strictly.
+
+1. **One source of truth for the manifest format.** The rules are in `spec/SPEC.md`, the schema in `packages/sdk/src/manifest.ts`, the examples in `spec/fixtures/`. Change all three in the same commit; the tests fail if they disagree.
+2. **Stay in your area.** Areas: SDK and MCP server (`packages/sdk`, `packages/mcp`); signing page (`packages/approve-ui`); contracts and ENS publishing (`contracts`, `apps/publisher`); Uniswap manifest; explorer (`apps/explorer`). Don't edit another area's files without telling its owner.
+3. **Short branches, merged often.** Name branches by area, such as `sdk/ens-discovery`. Open a PR so CI runs. `main` must always build and be demo-able.
+4. **Small, frequent commits.** ETHGlobal reads the git history. Note AI assistance in every AI-assisted commit message, per ETHGlobal's AI policy.
+5. **No secrets, ever.** Never commit private keys, seed phrases, wallet files, API keys or `.env` files. Deploy contracts with a Foundry keystore, not a private key in `.env`.
+6. **Mark shortcuts.** Write any known limitation as a `shortcut: <limit>, <when to fix>` comment. `grep -r "shortcut:"` lists what's left.
+7. **Release together.** Publish `@web3mcp/evm` and `@web3mcp/mcp` to npm together. The plugin pins the server's version, so bump both in the same commit.
+8. **Agent files stay local.** Never commit agent planning or tracking files: plans, specs or notes written for agents, task lists, trackers, scratch files, session memory, `.claude/`, `.codex/`, `.agents/`, `CLAUDE.local.md`. Keep them on your own machine. Only product and project files go in the repo. This file and `CLAUDE.md` are the only agent files in the repo; change them only when the team agrees.

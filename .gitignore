@@ -10,4 +10,17 @@ contracts/out/
 contracts/cache/
 contracts/broadcast/
 *.keypair.json
+
+# Agent planning and tracking files stay on each person's machine (AGENTS.md, rule 8)
+.claude/
+.codex/
+.agents/
+.cursor/
+.scratch/
+.plans/
+docs/superpowers/
 CLAUDE.local.md
+AGENTS.local.md
+PLAN.md
+TODO.md
+NOTES.md
