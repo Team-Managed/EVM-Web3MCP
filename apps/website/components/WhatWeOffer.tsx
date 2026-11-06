@@ -1,0 +1,124 @@
+"use client";
+
+import React, { useState } from "react";
+import { Copy, Check } from "lucide-react";
+
+export function WhatWeOffer() {
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  const offerings = [
+    {
+      title: "@web3mcp/evm",
+      subtitle: "Core TypeScript SDK",
+      tag: "Core Library",
+      features: [
+        "Strict manifest schema validator",
+        "ENSv2 resolver & digest verification",
+        "Pre-flight simulation via eth_simulateV1",
+        "Zero-custody wallet write compiler",
+      ],
+      command: "npm i @web3mcp/evm",
+    },
+    {
+      title: "Claude Code Plugin",
+      subtitle: "Native Anthropic Integration",
+      tag: "Developer Plugin",
+      features: [
+        "One-step plugin installation",
+        "On-chain tool discovery via ENS",
+        "Pre-execution simulation hook",
+        "Natural-language contract queries",
+      ],
+      command: "claude plugin install web3mcp@evm-web3mcp",
+    },
+    {
+      title: "Codex & MCP Host",
+      subtitle: "Generic MCP Standard Host",
+      tag: "Universal Host",
+      features: [
+        "Model Context Protocol compliance",
+        "Plug-and-play config via .mcp.json",
+        "Dynamic tool exposure to LLMs",
+        "Compatible with Cursor, Codex, and agents",
+      ],
+      command: "npx @web3mcp/mcp",
+    },
+  ];
+
+  const handleCopy = (cmd: string, idx: number) => {
+    navigator.clipboard.writeText(cmd);
+    setCopiedIndex(idx);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  return (
+    <section id="offerings" className="py-24 bg-[#FAF9F6] border-b border-[#E2DFD7]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-14">
+          <div className="flex items-center gap-2 font-mono text-xs text-[#E57E25] uppercase tracking-widest mb-3">
+            <span className="w-2.5 h-2.5 bg-[#E57E25]" />
+            <span>Open Toolset</span>
+          </div>
+          <h2 className="font-editorial text-4xl sm:text-6xl text-[#111316] font-normal tracking-tight mb-4 leading-[1.08]">
+            Build Once. Accessible to Every Agent.
+          </h2>
+          <p className="max-w-2xl text-sm sm:text-base text-[#5A5D64] leading-relaxed">
+            Publish under your ENS name. Discoverable across Claude, Cursor, and any MCP-compatible agent.
+          </p>
+        </div>
+
+        {/* 3 Sharp Cards in Refined 2-Color Palette */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {offerings.map((card, idx) => (
+            <div
+              key={card.title}
+              className="bg-[#FFFFFF] border border-[#E2DFD7] p-7 flex flex-col justify-between shadow-sharp-sand hover:border-[#16181B] transition-all"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#E2DFD7]">
+                  <span className="font-mono text-xs uppercase tracking-wider text-[#5A5D64]">
+                    {card.tag}
+                  </span>
+                  <div className="w-2 h-2 bg-[#16181B]" />
+                </div>
+
+                <h3 className="font-editorial text-2xl font-normal text-[#111316] mb-1">
+                  {card.title}
+                </h3>
+                <p className="text-xs text-[#5A5D64] mb-6 font-sans">
+                  {card.subtitle}
+                </p>
+
+                {/* Features List */}
+                <ul className="space-y-3 mb-8 text-xs text-[#5A5D64] font-sans">
+                  {card.features.map((feature, fIdx) => (
+                    <li key={fIdx} className="flex items-start gap-2.5">
+                      <span className="font-mono text-[#E57E25] font-bold select-none">•</span>
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Code Command Box */}
+              <div className="bg-[#FAF9F6] border border-[#E2DFD7] p-3 font-mono text-xs text-[#111316] flex items-center justify-between">
+                <code className="truncate max-w-[200px]">{card.command}</code>
+                <button
+                  onClick={() => handleCopy(card.command, idx)}
+                  className="hover:text-[#E57E25] transition-colors ml-2"
+                  title="Copy command"
+                >
+                  {copiedIndex === idx ? (
+                    <Check className="w-3.5 h-3.5 text-[#16181B]" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
