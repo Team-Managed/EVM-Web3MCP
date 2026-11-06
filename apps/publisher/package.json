@@ -2,7 +2,7 @@
   "name": "@web3mcp/publisher",
   "version": "0.0.1",
   "private": true,
-  "description": "CLI for protocol authors: validate a manifest, then publish it to ENS",
+  "description": "CLI for protocol authors: validate a manifest, check it against the chain, and print the ENS records to publish",
   "type": "module",
   "license": "Apache-2.0",
   "engines": {
@@ -12,9 +12,12 @@
     "web3mcp-publish": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc -p ."
+    "build": "tsc -p . && npm run bundle",
+    "bundle": "esbuild dist/index.js --bundle --platform=node --format=esm --target=node22 --minify --legal-comments=none --outfile=../../plugins/claude-code/skills/web3mcp-build/scripts/web3mcp-publish.mjs",
+    "test": "node --test \"test/*.test.ts\""
   },
   "dependencies": {
-    "@web3mcp/evm": "^0.0.1"
+    "@web3mcp/evm": "^0.0.1",
+    "viem": "^2.57.16"
   }
 }

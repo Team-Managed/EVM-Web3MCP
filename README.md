@@ -22,9 +22,9 @@ Details: [spec/SPEC.md](spec/SPEC.md).
 | `packages/sdk` | `@web3mcp/evm`: manifest validation now; ENS discovery, reads and writes next |
 | `packages/mcp` | `@web3mcp/mcp`: the generic MCP server |
 | `packages/approve-ui` | Local signing page where your own wallet signs each write |
-| `plugins/claude-code` | Claude Code plugin: MCP server, skill, and a hook that confirms every write |
+| `plugins/claude-code` | Claude Code and Codex plugin: MCP server, a skill to use protocols, a skill to build them, and a hook that confirms every write |
 | `plugins/codex` | Codex setup |
-| `apps/publisher` | `web3mcp-publish` CLI: `validate` now, publish to ENS next |
+| `apps/publisher` | `web3mcp-publish` CLI: validate a manifest, check it against the chain, print the ENS records to publish |
 | `apps/explorer` | Hosted read-only explorer (planned) |
 | `contracts` | Foundry: `AgentSwap`, the demo contract |
 | `spec` | Specification and shared test fixtures |
@@ -52,6 +52,16 @@ codex plugin add web3mcp@evm-web3mcp
 ```
 
 The plugin carries the server as one bundled file (`plugins/claude-code/server/`) with the signing page, so it needs only Node 22 or newer; nothing is downloaded from npm. Claude Code takes your wallet address from the plugin's options. In Codex, or any time, tell the agent your wallet ("my wallet is yourname.eth") and it sets it with the `wallet` tool. More on Codex, including a development launcher: [plugins/codex](plugins/codex/README.md).
+
+## Build with Web3MCP
+
+The `web3mcp-build` skill teaches a coding agent to make any contract agent-ready: write and check its manifest, design or upgrade the contract, and publish its tools on ENS. It ships with the plugin, and installs on its own in Claude Code, Codex, Cursor and other agents:
+
+```bash
+npx skills add Team-Managed/EVM-Web3MCP --skill web3mcp-build
+```
+
+It carries its own checker (`scripts/web3mcp-publish.mjs`), so it needs only Node 22. Try: "make my vault at 0x… usable by agents under vault.myprotocol.eth".
 
 ## Develop
 
