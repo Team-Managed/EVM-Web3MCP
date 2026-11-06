@@ -83,12 +83,12 @@ test('amounts with more decimals than the token are refused, not rounded', async
   assert.match(exact.calls.at(-1)!.description, /deposit\(10123456\)/);
 });
 
-const swapManifest = JSON.parse(readFileSync(new URL('../../../spec/fixtures/valid/swap.web3mcp-demo.eth.json', import.meta.url), 'utf8'));
+const swapManifest = JSON.parse(readFileSync(new URL('../../../spec/fixtures/valid/agentswap.web3mcp.eth.json', import.meta.url), 'utf8'));
 const { swap: SWAP, usdc: SWAP_USDC } = swapManifest.contracts as Record<string, Address>;
 
 async function swapSetup(read: FakeChain['read']) {
   const client = fakeClient({
-    texts: { 'swap.web3mcp-demo.eth': published(swapManifest) },
+    texts: { 'agentswap.web3mcp.eth': published(swapManifest) },
     code: {
       [SWAP.toLowerCase()]: codeWith(
         'function ethPrice()',
@@ -102,7 +102,7 @@ async function swapSetup(read: FakeChain['read']) {
     read,
     simulate: (calls) => ({ results: calls.map(() => ({ status: 'success' })), assetChanges: [] }),
   });
-  return { client, protocol: await discover(client, 'swap.web3mcp-demo.eth') };
+  return { client, protocol: await discover(client, 'agentswap.web3mcp.eth') };
 }
 
 test('a dry-run read, like a Uniswap quote, runs and formats with fixed decimals', async () => {

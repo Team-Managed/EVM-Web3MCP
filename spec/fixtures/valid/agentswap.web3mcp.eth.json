@@ -1,7 +1,7 @@
 {
   "web3mcp": "0.1-evm",
   "chainId": 11155111,
-  "name": "swap.web3mcp-demo.eth",
+  "name": "agentswap.web3mcp.eth",
   "contracts": {
     "swap": "0x454A0DC617E6c5d47cA76f39E8a351094dB7Acdd",
     "usdc": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
