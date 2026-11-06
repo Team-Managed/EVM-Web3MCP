@@ -30,6 +30,7 @@ export function Hero() {
 
         {/* Minimal Centered Eyebrow */}
         <div className="inline-flex items-center gap-2 mb-5 sm:mb-6 font-sans text-xs uppercase tracking-widest text-[#111316] font-semibold select-text">
+          <span className="h-2.5 w-2.5 rotate-45 bg-[#E57E25]" aria-hidden="true" />
           <span>Web3MCP Protocol • Open Standard for EVM</span>
         </div>
 
@@ -53,10 +54,10 @@ export function Hero() {
         {/* Centered Actions - Sharp Rectangular Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6 sm:mb-8">
           <a
-            href="#offerings"
+            href="#how-it-works"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#16181B] text-[#FAF9F6] text-xs font-sans font-bold uppercase tracking-wider hover:bg-[#333333] transition-colors shadow-sharp-solid"
           >
-            <span>Use Our Plugins</span>
+            <span>See How It Works</span>
             <ArrowRight className="w-4 h-4" />
           </a>
 
