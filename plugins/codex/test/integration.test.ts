@@ -29,8 +29,13 @@ test('real stdio discovery from unrelated cwd with spaces', async () => {
   try {
     await client.connect(transport);
     const result = await client.callTool({ name: 'discover', arguments: { name: 'vault.web3mcp-demo.eth' } });
-    assert.notEqual(result.isError, true);
-    assert.deepEqual(result.content, [{ type: 'text', text: "Discovered vault.web3mcp-demo.eth on chain 11155111: vault_get_balance, tx_vault_deposit, tx_vault_withdraw. If these tools don't appear in your tool list, run them with the call tool." }]);
+    assert.ok(!result.isError, result.content.map((item) => item.type === 'text' ? item.text : '').join('\n'));
+    assert.deepEqual(result.content, [{
+      type: 'text',
+      text: 'Discovered vault.web3mcp-demo.eth from a local manifest file, chain 11155111.\n' +
+        'Contracts: not checked on chain.\n' +
+        "Tools: vault_get_balance, tx_vault_deposit, tx_vault_withdraw. If these don't appear in your tool list, run them with the call tool.",
+    }]);
     const { tools } = await client.listTools();
     assert.deepEqual(tools.map(({ name }) => name).sort(), ['call', 'discover', 'tx_vault_deposit', 'tx_vault_withdraw', 'vault_get_balance']);
     for (const name of ['vault_get_balance', 'tx_vault_deposit', 'tx_vault_withdraw']) {

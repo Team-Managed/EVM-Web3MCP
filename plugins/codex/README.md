@@ -102,7 +102,9 @@ Ask Codex:
 Expected MCP response:
 
 ```text
-Discovered vault.web3mcp-demo.eth on chain 11155111: vault_get_balance, tx_vault_deposit, tx_vault_withdraw. If these tools don't appear in your tool list, run them with the call tool.
+Discovered vault.web3mcp-demo.eth from a local manifest file, chain 11155111.
+Contracts: not checked on chain.
+Tools: vault_get_balance, tx_vault_deposit, tx_vault_withdraw. If these don't appear in your tool list, run them with the call tool.
 ```
 
 Discovered tools:
