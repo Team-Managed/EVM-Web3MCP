@@ -3,7 +3,7 @@
   "chainId": 11155111,
   "name": "agentswap.web3mcp.eth",
   "contracts": {
-    "swap": "0x454A0DC617E6c5d47cA76f39E8a351094dB7Acdd",
+    "swap": "0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C",
     "usdc": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
   },
   "tools": [

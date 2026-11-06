@@ -69,17 +69,11 @@ cd contracts && forge test --fork-url https://ethereum-sepolia-rpc.publicnode.co
 
 `AgentSwap` (`contracts/src/AgentSwap.sol`) is published as `agentswap.web3mcp.eth`. It swaps ETH and USDC on Uniswap v4's Sepolia pool, quotes through Uniswap's own Quoter, and refuses any swap that pays more than 3% below Chainlink's ETH/USD price. It holds no funds. Its manifest is `spec/fixtures/valid/agentswap.web3mcp.eth.json`.
 
-Deploy it from your own wallet (a Foundry keystore account; the owner may only set the contract's ENS primary name):
-
-```bash
-cd contracts && forge create src/AgentSwap.sol:AgentSwap --rpc-url https://ethereum-sepolia-rpc.publicnode.com --account <keystore-name> --broadcast --constructor-args <your-address> 0xE03A1074c86CFeDd5C142C4F04F1a1536e203543 0x61B3f2011A92d183C7dbaDBdA940a7555Ccf9227 0x694AA1769357215DE4FAC081bf1f309aDC325306 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238
-```
-
-The arguments are the owner, Uniswap's PoolManager and Quoter, Chainlink's ETH/USD feed, and Circle's USDC, all on Sepolia. Put the deployed address under `contracts.swap` in the manifest.
+It's live on Sepolia at [`0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C`](https://sepolia.etherscan.io/address/0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C), owned by `web3mcp.eth`. `agentswap.web3mcp.eth` points at it and holds its manifest, and its primary name points back, so discovery marks it owner-verified. It was deployed through the deterministic CREATE2 deployer and published from the owner's wallet on the local signing page. The constructor takes the owner, Uniswap's PoolManager and Quoter, Chainlink's ETH/USD feed, and Circle's USDC.
 
 ## Status
 
-Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes that are simulated, shown on a local signing page and signed in your own wallet. Uniswap quotes run through dry-run reads. The demo contract swaps on Uniswap v4 with a Chainlink price check and passes its tests on a Sepolia fork. Next: deploy it, publish `agentswap.web3mcp.eth` on ENS, and Arkiv search.
+Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes that are simulated, shown on a local signing page and signed in your own wallet. Uniswap quotes run through dry-run reads. The demo contract swaps on Uniswap v4 with a Chainlink price check and passes its tests on a Sepolia fork. It's deployed and published at `agentswap.web3mcp.eth`. Next: Arkiv search.
 
 To try signing, set `WEB3MCP_ACCOUNT` to your Sepolia wallet before opening Claude Code in this repo, then ask it to swap 0.001 ETH for USDC on `agentswap.web3mcp.eth`. Get test ETH from a Sepolia faucet and test USDC from faucet.circle.com.
 
