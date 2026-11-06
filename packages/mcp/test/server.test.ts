@@ -2,7 +2,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { toHex } from 'viem';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
@@ -63,7 +62,6 @@ test('search lists names whose Arkiv listing matches ENS, and needs an index to 
     $owner: '0x0000000000000000000000000000000000000abc',
     ens: { type: 'str', value: 'vault.web3mcp-demo.eth' },
     digest: { type: 'str', value: d },
-    about: { type: 'bytes', value: toHex('A demo USDC vault.') },
     't.deposit': { type: 'bool', value: true },
   });
   let rows = [listed(digest)];
@@ -72,7 +70,7 @@ test('search lists names whose Arkiv listing matches ENS, and needs an index to 
   const { client } = await connect({ client: fakeClient(vaultChain()), arkiv });
 
   const found = textOf(await call(client, 'search', { terms: ['deposit', 'savings'] }));
-  assert.match(found, /1\. vault\.web3mcp-demo\.eth: matched deposit\. \[Listed on Arkiv by 0x0+abc; untrusted text\] A demo USDC vault\./);
+  assert.match(found, /1\. vault\.web3mcp-demo\.eth: matched deposit, saving\. \[Listed on Arkiv by 0x0+abc; untrusted text\] A demo USDC vault: deposit, withdraw/);
   assert.match(found, /Call discover/);
 
   rows = [listed(`0x${'0'.repeat(64)}`)];

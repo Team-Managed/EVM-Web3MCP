@@ -1,16 +1,16 @@
 import type { CreateEntityParameters, PublicArkivClient } from '@arkiv-network/sdk';
 import { and, eq, exists, or } from '@arkiv-network/sdk/query';
-import { bool, bytes, defineSchema, str, u64 } from '@arkiv-network/sdk/schema';
-import { hexToString, stringToBytes, type Hex } from 'viem';
+import { bool, defineSchema, str, u64 } from '@arkiv-network/sdk/schema';
+import { keccak256, toBytes, type Hex } from 'viem';
 import { normalize } from 'viem/ens';
 import type { ChainClient } from './client.js';
-import { DIGEST_KEY } from './discover.js';
-import type { Manifest } from './manifest.js';
+import { MANIFEST_KEY } from './discover.js';
+import { validateManifest, type Manifest } from './manifest.js';
 
 /** The schema tag on every Web3MCP listing entity on Arkiv. */
 export const LISTING = 'web3mcp.listing';
-// An Arkiv entity holds at most 32 attributes: the schema tag, the four columns, and one per search term.
-const MAX_TERMS = 27;
+// An Arkiv entity holds at most 32 attributes: the schema tag, the three columns, and one per search term.
+const MAX_TERMS = 28;
 const MAX_QUERY_TERMS = 10;
 // Listings checked against ENS per search. Spam beyond this can crowd real names out of a search, never into discover.
 const MAX_CHECKED = 20;
@@ -66,12 +66,9 @@ export function listing(manifest: Manifest, digest: Hex): Pick<CreateEntityParam
     ens: str().indexed(),
     chainId: u64().indexed(),
     digest: str().indexed(),
-    // Up to 200 characters, more than a str's 128 bytes.
-    about: bytes(),
     ...Object.fromEntries(found.map((t) => [`t.${t}`, bool().indexed()])),
   });
-  const about = manifest.description ?? `Tools: ${manifest.tools.map((t) => t.name).join(', ')}`.slice(0, 200);
-  const values = { ens: manifest.name, chainId: u64(BigInt(manifest.chainId)), digest, about: stringToBytes(about), ...flags };
+  const values = { ens: manifest.name, chainId: u64(BigInt(manifest.chainId)), digest, ...flags };
   return { schema, values, terms: found };
 }
 
@@ -82,13 +79,14 @@ const value = (v: unknown, type: string): unknown => {
 
 /**
  * Find protocols on `chainId` by words for what the user wants to do. Arkiv returns the listings that share a
- * term, ranked here by how many they share. Anyone can write a listing, so only those whose digest still
- * matches the name's ENS record are kept; the agent must still discover a name before using it.
+ * term. Anyone can write a listing, so a listing only points to a name: it is kept if its digest names the
+ * manifest on ENS now, and its matched words and description come from that manifest. The agent must still
+ * discover a name before using it.
  */
 export async function search(arkiv: ArkivReader, client: ChainClient, query: string[], chainId: number, limit = 5): Promise<SearchResult[]> {
   const wanted = terms(query.flatMap(words)).slice(0, MAX_QUERY_TERMS);
   if (wanted.length === 0) return [];
-  const selection = { $owner: true, ens: true, digest: true, about: true, ...Object.fromEntries(wanted.map((t) => [`t.${t}`, true])) };
+  const selection = { $owner: true, ens: true, digest: true, ...Object.fromEntries(wanted.map((t) => [`t.${t}`, true])) };
   const { entities } = await arkiv
     .select(selection)
     .where(and(eq('arkiv.schema', LISTING), eq('chainId', u64(BigInt(chainId))), or(...wanted.map((t) => exists(`t.${t}`)))))
@@ -96,11 +94,10 @@ export async function search(arkiv: ArkivReader, client: ChainClient, query: str
     .limit(100)
     .fetch();
 
-  const candidates: (SearchResult & { digest: string })[] = [];
+  const candidates: { ens: string; digest: string; owner: Hex; claimed: number }[] = [];
   for (const row of entities as Record<string, unknown>[]) {
     const ens = value(row.ens, 'str');
     const digest = value(row.digest, 'str');
-    const about = value(row.about, 'bytes');
     if (typeof ens !== 'string' || typeof digest !== 'string') continue;
     let name: string;
     try {
@@ -108,21 +105,34 @@ export async function search(arkiv: ArkivReader, client: ChainClient, query: str
     } catch {
       continue;
     }
-    // Anyone can write this text: one line, so the host's "untrusted" label stays next to all of it.
-    const description = typeof about === 'string' ? hexToString(about as Hex).replace(/\s+/g, ' ').trim().slice(0, 200) : '';
-    candidates.push({ ens: name, digest, description, owner: row.$owner as Hex, matched: wanted.filter((t) => row[`t.${t}`] !== undefined) });
+    const claimed = wanted.filter((t) => row[`t.${t}`] !== undefined).length;
+    candidates.push({ ens: name, digest: digest.toLowerCase(), owner: row.$owner as Hex, claimed });
   }
-  candidates.sort((a, b) => b.matched.length - a.matched.length);
+  // The words a listing claims only choose which names to check; what search returns comes from ENS.
+  candidates.sort((a, b) => b.claimed - a.claimed);
 
   const names = [...new Set(candidates.map((c) => c.ens))].slice(0, MAX_CHECKED);
-  const published = new Map(
-    await Promise.all(names.map(async (n) => [n, await client.getEnsText({ name: n, key: DIGEST_KEY }).catch(() => null)] as const)),
+  const records = new Map(
+    await Promise.all(names.map(async (n) => [n, await client.getEnsText({ name: n, key: MANIFEST_KEY }).catch(() => null)] as const)),
   );
   const results: SearchResult[] = [];
-  for (const { digest, ...c } of candidates) {
-    if (results.length === limit) break;
-    if (results.some((r) => r.ens === c.ens) || published.get(c.ens)?.toLowerCase() !== digest.toLowerCase()) continue;
-    results.push(c);
+  for (const c of candidates) {
+    const record = records.get(c.ens);
+    // A real name's digest is public, so anyone can copy it: the digest must name the manifest on ENS now.
+    if (!record || keccak256(toBytes(record)) !== c.digest || results.some((r) => r.ens === c.ens)) continue;
+    let manifest: Manifest;
+    try {
+      manifest = validateManifest(JSON.parse(record));
+    } catch {
+      continue;
+    }
+    if (manifest.name !== c.ens || manifest.chainId !== chainId) continue;
+    const own = searchTerms(manifest);
+    const matched = wanted.filter((t) => own.includes(t));
+    if (matched.length === 0) continue;
+    // The publisher's own text, still untrusted: one line, so the host's "untrusted" label stays next to all of it.
+    const about = manifest.description ?? `Tools: ${manifest.tools.map((t) => t.name).join(', ')}`;
+    results.push({ ens: c.ens, description: about.replace(/\s+/g, ' ').trim().slice(0, 200), matched, owner: c.owner });
   }
-  return results;
+  return results.sort((a, b) => b.matched.length - a.matched.length).slice(0, limit);
 }

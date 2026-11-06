@@ -101,10 +101,9 @@ The publisher writes one Arkiv entity per name, tagged `arkiv.schema = "web3mcp.
 | `ens` | `str` | yes | The ENS name |
 | `chainId` | `u64` | yes | The manifest's `chainId` |
 | `digest` | `str` | yes | The name's `org.web3mcp.digest` record when the listing was written |
-| `about` | `bytes` | no | The manifest's `description`, or its tool names |
 | `t.<term>` | `bool` | yes | One per search term, set to `true` |
 
-The search terms are the manifest's `keywords`, then words from its tool names, contract aliases, output symbols and descriptions, up to 27 (an entity holds at most 32 attributes). A term is a lowercase word of 2 to 30 letters or digits; common words such as "the" are dropped, and a trailing plural "s" is dropped from words over four letters, so "swaps" is stored as "swap".
+The search terms are the manifest's `keywords`, then words from its tool names, contract aliases, output symbols and descriptions, up to 28 (an entity holds at most 32 attributes). A term is a lowercase word of 2 to 30 letters or digits; common words such as "the" are dropped, and a trailing plural "s" is dropped from words over four letters, so "swaps" is stored as "swap".
 
 A listing expires 30 days after it is written unless the publisher refreshes it, so abandoned protocols drop out of search. They stay usable by name. Refreshing extends the listing when the digest is unchanged; when the manifest changed, the publisher deletes its old listing and writes a new one in the same transaction. Only the owning wallet can extend or delete a listing.
 
@@ -112,5 +111,5 @@ A listing expires 30 days after it is written unless the publisher refreshes it,
 
 1. The agent turns the user's goal into up to 10 terms: their words plus synonyms, actions and token symbols. The host normalizes them as above.
 2. The host asks Arkiv for listings on its own chain that carry any of them: `arkiv.schema = "web3mcp.listing" && chainId = <id> && (EXISTS(t.swap) || EXISTS(t.usdc) || …)`.
-3. It ranks the listings by how many terms they carry, and keeps a listing only if its `digest` equals the name's `org.web3mcp.digest` record on ENS now. Anyone can write a listing, so this drops stale and fake ones.
+3. It reads the `org.web3mcp.manifest` record of the names whose listings carry the most terms, and keeps a listing only if its `digest` is keccak256 of that record. Anyone can write a listing, and a real name's digest is public, so a listing only points to a name: the host takes the matched terms and the description from the manifest on ENS, never from the listing, and drops names whose manifest matches none of the terms. Results are ranked by how many terms the manifest matches.
 4. The agent picks a name and discovers it (section 3) before using it. The index only points to names, so a listing can't change what an agent runs.

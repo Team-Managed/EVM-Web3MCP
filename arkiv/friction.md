@@ -16,7 +16,7 @@ Notes from building the Web3MCP search index on Rabdi with `@arkiv-network/sdk` 
 ## What we'd like improved
 
 - **Text search.** Filters are equality, ranges, `startsWith` and `EXISTS`, with no "contains" or multi-valued attribute. For keyword search we store each term as its own indexed attribute (`t.swap`) and query `EXISTS(t.a) || EXISTS(t.b)`. A string-set attribute, or "contains" on an indexed string, would make this direct.
-- **32 attributes per entity.** That caps a listing at 27 terms. One string set (above) would remove the need for many attributes.
+- **32 attributes per entity.** That caps a listing at 28 terms. One string set (above) would remove the need for many attributes.
 - **Typed queries over dynamic attributes.** A schema's `where` only takes the schema's own columns, so our per-term attributes need an untyped query, with values unwrapped from `{ type, value }` by hand.
 - **`str` is 128 bytes.** That's short for a one-line description (we allow 200 characters), so ours goes in `bytes`. It's documented, but surprising.
 - **Docs drift.** The npm README's install output shows `"@arkiv-network/sdk": "^0.9.0"` while npm has 1.0.1. Web search also turns up docs for SDK 0.4.4 on the `mendoza` chain and 0.6.0 on `kaolin`, while the current testnet is Rabdi.
@@ -25,5 +25,5 @@ Notes from building the Web3MCP search index on Rabdi with `@arkiv-network/sdk` 
 ## What worked well
 
 - The query builder and `EXISTS` worked on the live testnet the first time, including selecting attributes by name without a schema.
-- Gas estimation runs the whole batch, so a malformed entity fails before anything is sent. We checked the full 27-term listing this way from an unfunded account: the only error was the funds error.
+- Gas estimation runs the whole batch, so a malformed entity fails before anything is sent. We checked the full 28-term listing this way from an unfunded account: the only error was the funds error.
 - `executeBatch` made "delete the old listing and write the new one" a single atomic transaction.

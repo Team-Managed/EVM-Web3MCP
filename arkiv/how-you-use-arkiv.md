@@ -10,7 +10,7 @@ Arkiv holds the Web3MCP search index: one listing per published ENS name (see [s
 | Expiration | 30 days, extended by running `index` again | Protocols that stop maintaining their listing drop out of search |
 | Batch transactions | When a manifest changes, the old listing is deleted and the new one written in one `executeBatch` | Search never shows a name twice, or a half-updated listing |
 
-The `digest` attribute ties each listing to ENS: hosts keep a listing only while it matches the name's current `org.web3mcp.digest` record. So a stale or fake listing can't send an agent somewhere unexpected, and the agent still discovers and checks the name on chain before using it.
+The `digest` attribute ties each listing to ENS: hosts keep a listing only while it is keccak256 of the name's current manifest record, and they take the matched words and description from that manifest, not from the listing. So a stale or fake listing can't send an agent somewhere unexpected or put words in a real protocol's mouth, and the agent still discovers and checks the name on chain before using it.
 
 ## Try it
 
