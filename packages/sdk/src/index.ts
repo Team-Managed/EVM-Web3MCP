@@ -5,3 +5,5 @@ export { executeRead, prepareWrite, resolveAddress, ToolError } from './execute.
 export type { AssetChange, PreparedCall, PreparedWrite, ShownArg, ToolInput } from './execute.js';
 export { ManifestError, validateManifest } from './manifest.js';
 export type { Manifest, ToolDeclaration } from './manifest.js';
+export { listing, LISTING, search, searchTerms } from './search.js';
+export type { ArkivReader, SearchResult } from './search.js';

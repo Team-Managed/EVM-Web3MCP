@@ -34,6 +34,7 @@
     "test": "node --test \"test/*.test.ts\""
   },
   "dependencies": {
+    "@arkiv-network/sdk": "^1.0.1",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@web3mcp/evm": "^0.0.1",
     "viem": "^2.57.16",

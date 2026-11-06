@@ -84,14 +84,33 @@ The generic MCP server starts with these tools:
 - `discover(name)` loads a protocol and registers its tools, then sends `notifications/tools/list_changed`.
 - `call(tool, args)` runs a discovered tool, for clients that do not refresh their tool list.
 - `status(id)` reports whether the user signed a write on the signing page and whether it confirmed on chain, waiting up to 25 seconds.
-- `search(query)` (planned) finds published names by what they can do, through the Arkiv index (section 6).
+- `search(terms)` finds published names by what they can do, through the Arkiv index (section 6). A host without an index leaves it out.
 
 Discovered tools are named `<namespace>_<tool>` for reads and `tx_<namespace>_<tool>` for writes. The namespace is the first label of the ENS name. Reads carry `readOnlyHint: true`. Every description is prefixed with its publisher, because it is untrusted text.
 
 ## 6. Search (Arkiv)
 
-Agents find protocols by what they can do, through an index on Arkiv. Search is optional and never blocks discovery: when the user names an ENS name, the host discovers it directly. Search only helps when the user describes a goal without a name, and a host without search asks the user for the name instead.
+Agents find protocols by what they can do, through an index on [Arkiv](https://arkiv.network). Search is optional and never blocks discovery: when the user names an ENS name, the host discovers it directly. Search only helps when the user describes a goal without a name, and a host without search asks the user for the name instead.
 
-- Publishing writes one Arkiv entity per name, owned by the publisher's wallet: the ENS name, `chainId`, the manifest digest, and each tool's name and description.
-- Entities expire unless the publisher refreshes them, so abandoned protocols drop out of search. They stay usable by name.
-- The index only points to names. A host always reads and verifies the manifest from ENS (section 3) before using it, so a stale or fake entry cannot change what an agent runs.
+### Listings
+
+The publisher writes one Arkiv entity per name, tagged `arkiv.schema = "web3mcp.listing"` and owned by the publisher's wallet:
+
+| Attribute | Type | Indexed | Value |
+|---|---|---|---|
+| `ens` | `str` | yes | The ENS name |
+| `chainId` | `u64` | yes | The manifest's `chainId` |
+| `digest` | `str` | yes | The name's `org.web3mcp.digest` record when the listing was written |
+| `about` | `bytes` | no | The manifest's `description`, or its tool names |
+| `t.<term>` | `bool` | yes | One per search term, set to `true` |
+
+The search terms are the manifest's `keywords`, then words from its tool names, contract aliases, output symbols and descriptions, up to 27 (an entity holds at most 32 attributes). A term is a lowercase word of 2 to 30 letters or digits; common words such as "the" are dropped, and a trailing plural "s" is dropped from words over four letters, so "swaps" is stored as "swap".
+
+A listing expires 30 days after it is written unless the publisher refreshes it, so abandoned protocols drop out of search. They stay usable by name. Refreshing extends the listing when the digest is unchanged; when the manifest changed, the publisher deletes its old listing and writes a new one in the same transaction. Only the owning wallet can extend or delete a listing.
+
+### Searching
+
+1. The agent turns the user's goal into up to 10 terms: their words plus synonyms, actions and token symbols. The host normalizes them as above.
+2. The host asks Arkiv for listings on its own chain that carry any of them: `arkiv.schema = "web3mcp.listing" && chainId = <id> && (EXISTS(t.swap) || EXISTS(t.usdc) || …)`.
+3. It ranks the listings by how many terms they carry, and keeps a listing only if its `digest` equals the name's `org.web3mcp.digest` record on ENS now. Anyone can write a listing, so this drops stale and fake ones.
+4. The agent picks a name and discovers it (section 3) before using it. The index only points to names, so a listing can't change what an agent runs.
