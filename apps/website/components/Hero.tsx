@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowRight, ArrowUpRight, Terminal } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { HeroRibbonWave } from "./HeroRibbonWave";
 
 /**
@@ -53,10 +53,10 @@ export function Hero() {
         {/* Centered Actions - Sharp Rectangular Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6 sm:mb-8">
           <a
-            href="#features-explained"
+            href="#offerings"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[#16181B] text-[#FAF9F6] text-xs font-sans font-bold uppercase tracking-wider hover:bg-[#333333] transition-colors shadow-sharp-solid"
           >
-            <span>Explore Protocol Features</span>
+            <span>Use Our Plugins</span>
             <ArrowRight className="w-4 h-4" />
           </a>
 
@@ -66,16 +66,15 @@ export function Hero() {
             rel="noreferrer"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-6 py-3.5 bg-[#FFFFFF] text-xs font-sans font-bold uppercase tracking-wider text-[#111316] border border-[#16181B] hover:bg-[#F4EEDF] transition-colors shadow-sharp-sand"
           >
-            <span>Read Protocol Spec</span>
+            <span>Read Our Documentation</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </a>
         </div>
 
-        {/* Centered Monospace Install Snippet */}
-        <div className="inline-flex items-center gap-3 font-sans text-xs select-text" style={{ color: "#16181B" }}>
-          <Terminal className="w-3.5 h-3.5 text-[#111316]" />
-          <code className="font-mono text-[#111316] font-semibold">npm i @web3mcp/evm</code>
-          <span className="text-[#5A5D64] font-medium">• Node 22+ & TypeScript</span>
+        {/* Centered Spec Details */}
+        <div className="inline-flex items-center gap-2 font-sans text-xs select-text" style={{ color: "#16181B" }}>
+          <span className="font-sans text-[#111316] font-semibold">Open Source Standard</span>
+          <span className="text-[#5A5D64] font-medium">• Node 22+ & TypeScript • Zero Key Custody</span>
         </div>
       </div>
     </section>

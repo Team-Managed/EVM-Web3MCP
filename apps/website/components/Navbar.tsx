@@ -62,7 +62,7 @@ export function Navbar() {
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#FFFFFF] text-[#111316] text-xs font-sans font-bold uppercase tracking-wider hover:bg-[#FAF9F6] transition-all shadow-sm"
             >
-              <span>Protocol Spec</span>
+              <span>Documentation</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </a>
           </div>

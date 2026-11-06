@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowRight, ArrowUpRight, Github, FileText, Terminal, ShieldCheck, Cpu } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Github, FileText, ShieldCheck, Cpu } from "lucide-react";
 import { HeroRibbonWave } from "./HeroRibbonWave";
 
 /**
@@ -41,12 +41,10 @@ export function Footer() {
 
           <div className="flex flex-wrap items-center gap-3">
             <a
-              href="https://github.com/Team-Managed/EVM-Web3MCP"
-              target="_blank"
-              rel="noreferrer"
+              href="#offerings"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#16181B] text-[#FAF9F6] text-xs font-sans font-bold uppercase tracking-wider hover:bg-[#333333] transition-colors shadow-sharp-solid"
             >
-              <span>GitHub</span>
+              <span>Use Our Plugins</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </a>
 
@@ -56,14 +54,9 @@ export function Footer() {
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-[#FFFFFF] text-xs font-sans font-bold uppercase tracking-wider text-[#111316] border border-[#16181B] hover:bg-[#F4EEDF] transition-colors shadow-sharp-sand"
             >
-              <span>Protocol Spec</span>
+              <span>Read Our Documentation</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </a>
-
-            <div className="hidden lg:inline-flex items-center gap-2 px-3.5 py-2.5 bg-[#FFFFFF] border border-[#E2DFD7] text-xs font-mono text-[#111316]">
-              <Terminal className="w-3.5 h-3.5 text-[#2563EB]" />
-              <span>npm i @web3mcp/evm</span>
-            </div>
           </div>
         </div>
 
@@ -127,7 +120,7 @@ export function Footer() {
                   rel="noreferrer"
                   className="hover:text-[#111316] transition-colors flex items-center gap-1.5"
                 >
-                  <Terminal className="w-3.5 h-3.5 text-[#111316]" />
+                  <FileText className="w-3.5 h-3.5 text-[#111316]" />
                   <span>Solana Sibling</span>
                 </a>
               </li>
