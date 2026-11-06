@@ -44,4 +44,6 @@ Set `WEB3MCP_RPC_URL` to a reliable RPC, such as `https://ethereum-sepolia-rpc.p
 5. The user publishes the two records in one transaction: in the ENS app, or with the printed `cast send` command and their keystore.
 6. Run `check <ens-name>`. It must say the name is published and the digest matches. If the `web3mcp` MCP server is connected, `discover` the name and run one read.
 
-Supported in v0.1-evm: Ethereum mainnet and Sepolia, with the contracts and the ENS name on the same chain.
+## Supported chains
+
+The contracts and the ENS name must be on the same chain. The checker works on Sepolia and Ethereum mainnet, but the `web3mcp` plugin's server reads Sepolia only, so publish on Sepolia. A name published on mainnet works only for hosts started with `WEB3MCP_CHAIN=mainnet`; plugin users' agents won't find it. Tell the user this before they pay mainnet gas.

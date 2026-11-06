@@ -55,7 +55,7 @@ A full live example is AgentSwap, published as `agentswap.web3mcp.eth`: [manifes
 ## Fields
 
 - `web3mcp`: `"0.1-evm"`.
-- `chainId`: the chain the contracts are on: 1 or 11155111 for now.
+- `chainId`: the chain the contracts are on: 11155111 (Sepolia) or 1. The `web3mcp` plugin reads Sepolia only today; see "Supported chains" in [SKILL.md](../SKILL.md).
 - `name`: the ENS name it's published on, lowercase.
 - `contracts`: aliases to addresses. Aliases are lowercase identifiers (`^[a-z][a-z0-9_]{0,31}$`). `you` is reserved for the user's wallet. List every token a tool approves or formats, not just the protocol's contracts.
 - `tools`: 1 to 32. Each has a `name` (a unique lowercase identifier), `kind` (`read` or `write`), a `description` (up to 500 characters) and `inputs`.
@@ -101,7 +101,7 @@ Literals are parsed against the parameter's ABI type: numbers in base units (`"1
 - For a write that takes a minimum, provide a quote read and say so in the description: "Quote first and set min_usdc about 1% below the quote."
 - Use `amount` with its token for token amounts and `ether` for ETH, never raw `uint256`. Add `output` to numeric reads so agents see `10.5 USDC`, not `10500000`.
 - Where the output goes somewhere, take a `recipient` input described as "the user's own wallet unless they name someone".
-- Keep it short. Every byte is stored on chain in a text record: publishing AgentSwap's 3.2 KB manifest took about 2.1M gas.
+- Keep it under about 4 KB. Every byte is stored on chain in a text record: AgentSwap's first publication (2.8 KB) took 10.7M gas, and a later update (3.2 KB) took 2.1M. One transaction can use at most 16,777,216 gas, so a much larger manifest won't fit in its first publication. `check` warns above 4,000 bytes.
 
 ## What doesn't fit yet
 

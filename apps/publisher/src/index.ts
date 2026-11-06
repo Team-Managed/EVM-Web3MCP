@@ -44,7 +44,10 @@ try {
       }
       console.log(`\nOn ENS now: ${live ? `a different manifest (digest ${live})` : 'no manifest'}`);
       console.log(`\nSet both text records on ${manifest.name} in one transaction:`);
-      console.log(`org.web3mcp.manifest (${Buffer.byteLength(value)} bytes):\n${value}`);
+      const bytes = Buffer.byteLength(value);
+      // AgentSwap's first 2.8 KB publication took 10.7M gas, and a transaction may use at most 16,777,216.
+      if (bytes > 4000) console.log(`Warning: at ${bytes} bytes, the first publication may not fit in one transaction's gas. Shorten descriptions or drop tools.`);
+      console.log(`org.web3mcp.manifest (${bytes} bytes):\n${value}`);
       console.log(`org.web3mcp.digest:\n${digest}`);
       const resolver = await publicClient.getEnsResolver({ name: manifest.name }).catch(() => undefined);
       if (!resolver || BigInt(resolver) === 0n) {
@@ -57,7 +60,9 @@ try {
         } else {
           const calldata = publishCalldata(manifest.name, { value, digest }, version);
           console.log(`\nOr send both in one call from the name's owner (ENS ${version} resolver ${resolver}):`);
-          console.log(`cast send ${resolver} --data ${calldata} --rpc-url ${env.WEB3MCP_RPC_URL || chain.rpcUrls.default.http[0]} --account <your-keystore>`);
+          // A private RPC URL usually holds an API key: let the shell fill it in rather than print it into a transcript.
+          const rpc = env.WEB3MCP_RPC_URL ? '"$WEB3MCP_RPC_URL"' : chain.rpcUrls.default.http[0];
+          console.log(`cast send ${resolver} --data ${calldata} --rpc-url ${rpc} --account <your-keystore>`);
         }
       }
     }
