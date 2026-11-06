@@ -28,5 +28,6 @@ console.log(write.calls, write.assetChanges);
 - `executeRead(client, protocol, tool, input)` runs a read. Address inputs accept ENS names, and results are formatted when the tool declares `output`, such as `10.5 USDC`.
 - `prepareWrite(client, protocol, tool, input, account)` builds the write's calls, skips approvals the wallet already gave, re-checks that no contract changed since discovery, and simulates everything together. It returns the calls and the wallet's balance changes. Simulation needs an RPC with `eth_simulateV1`.
 - `validateManifest(json)` checks a manifest offline, for publishing tools.
+- `search(arkiv, client, words, chainId)` finds protocols by goal on the Web3MCP index on [Arkiv](https://arkiv.network), given an Arkiv public client from `@arkiv-network/sdk`. It returns only names whose ENS manifest still matches their listing, with the matched words and description taken from that manifest. `listing(manifest, digest)` builds the entity a publisher writes ([spec section 6](https://github.com/Team-Managed/EVM-Web3MCP/blob/main/spec/SPEC.md#6-search-arkiv)).
 
 Works with viem 2.30 or newer, on Node 22 or newer. The protocol rules are in the [spec](https://github.com/Team-Managed/EVM-Web3MCP/blob/main/spec/SPEC.md).
