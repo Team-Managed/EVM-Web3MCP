@@ -24,10 +24,11 @@ Details: [spec/SPEC.md](spec/SPEC.md).
 | `packages/approve-ui` | Local signing page where your own wallet signs each write |
 | `plugins/claude-code` | Claude Code plugin: MCP server, skill, and a hook that confirms every write |
 | `plugins/codex` | Codex setup |
-| `apps/publisher` | `web3mcp-publish` CLI: `validate` now, publish to ENS next |
+| `apps/publisher` | `web3mcp-publish` CLI: validate a manifest, list a published name on the Arkiv search index, search it |
 | `apps/explorer` | Hosted read-only explorer (planned) |
 | `contracts` | Foundry: `AgentSwap`, the demo contract |
 | `spec` | Specification and shared test fixtures |
+| `arkiv` | How we use Arkiv: schema, feedback, and the write-ups for Arkiv's prize |
 
 ## Install
 
@@ -79,9 +80,27 @@ cd contracts && forge test --fork-url https://ethereum-sepolia-rpc.publicnode.co
 
 It's live on Sepolia at [`0xE17021E2fd5Dd0A6608293E7Ac5E3c361ae30e58`](https://sepolia.etherscan.io/address/0xE17021E2fd5Dd0A6608293E7Ac5E3c361ae30e58), owned by `web3mcp.eth`. `agentswap.web3mcp.eth` points at it and holds its manifest, and its primary name points back, so discovery marks it owner-verified. It was deployed through the deterministic CREATE2 deployer and published from the owner's wallet on the local signing page. The constructor takes the owner, Uniswap's PoolManager and Quoter, Chainlink's ETH/USD feed, and Circle's USDC.
 
+## Search on Arkiv
+
+A publisher lists its name on an index on [Arkiv](https://arkiv.network), so agents can find it by what it does. Each search term is an indexed attribute, so Arkiv itself finds the listings that match, and each listing expires unless the publisher refreshes it. Hosts keep only listings that still match the name's ENS record. Details: [spec section 6](spec/SPEC.md#6-search-arkiv) and [`arkiv/`](arkiv).
+
+Search the index the way an agent's `search` tool does (after `npm ci` and `npm run build`):
+
+```bash
+npx web3mcp-publish search swap usdc
+```
+
+List a published name, or refresh its listing for another 30 days. It signs with a [Foundry keystore](https://getfoundry.sh/cast/reference/wallet/import), never a key in the environment, so fund that wallet with tGLM from the [Arkiv faucet](https://hub.arkiv.network/faucet) first:
+
+```bash
+npx web3mcp-publish index agentswap.web3mcp.eth --account web3mcp
+```
+
+Set `WEB3MCP_ARKIV_KEY` to an [Arkiv access key](https://hub.arkiv.network/access-keys) to avoid the public endpoint's rate limit. Listings live on Arkiv's Rabdi testnet (chain 7794095), written by `TODO: publisher wallet, after the first listing`.
+
 ## Status
 
-Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes that are simulated, shown on a local signing page and signed in your own wallet. Uniswap quotes run through dry-run reads. The demo contract swaps on Uniswap v4 with a Chainlink price check and passes its tests on a Sepolia fork. It's deployed and published at `agentswap.web3mcp.eth`. Next: Arkiv search.
+Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes that are simulated, shown on a local signing page and signed in your own wallet. Uniswap quotes run through dry-run reads. The demo contract swaps on Uniswap v4 with a Chainlink price check and passes its tests on a Sepolia fork. It's deployed and published at `agentswap.web3mcp.eth`. Published names can be listed on an Arkiv index, so an agent finds a protocol from a goal ("swap my ETH") when the user names none. Next: the explorer.
 
 To try signing, set `WEB3MCP_ACCOUNT` to your Sepolia wallet before opening Claude Code in this repo, then ask it to swap 0.001 ETH for USDC on `agentswap.web3mcp.eth`. Get test ETH from a Sepolia faucet and test USDC from faucet.circle.com.
 
