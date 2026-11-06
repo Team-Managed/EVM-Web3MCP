@@ -26,6 +26,10 @@
     ".": {
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js"
+    },
+    "./approvals": {
+      "types": "./dist/approvals.d.ts",
+      "import": "./dist/approvals.js"
     }
   },
   "scripts": {

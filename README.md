@@ -100,7 +100,13 @@ Search the index the way an agent's `search` tool does (after `npm ci` and `npm 
 npx web3mcp-publish search swap usdc
 ```
 
-List a published name, or refresh its listing for another 30 days. It signs with a [Foundry keystore](https://getfoundry.sh/cast/reference/wallet/import), never a key in the environment, so fund that wallet with tGLM from the [Arkiv faucet](https://hub.arkiv.network/faucet) first:
+List a published name, or refresh its listing for another 30 days. Fund your wallet with tGLM from the [Arkiv faucet](https://hub.arkiv.network/faucet) first, then sign in your browser wallet, on the same local signing page agents use for writes. The page adds Arkiv's network to your wallet if it doesn't have it:
+
+```bash
+npx web3mcp-publish index agentswap.web3mcp.eth --browser <your-address>
+```
+
+Or sign with a [Foundry keystore](https://getfoundry.sh/cast/reference/wallet/import). Either way, no key goes in the environment:
 
 ```bash
 npx web3mcp-publish index agentswap.web3mcp.eth --account web3mcp

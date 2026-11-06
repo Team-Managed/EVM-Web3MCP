@@ -4,10 +4,11 @@ import { readFile } from 'node:fs/promises';
 import { createPublicClient as createArkivClient, createWalletClient as createArkivWallet, ExpirationTime } from '@arkiv-network/sdk';
 import { rabdi } from '@arkiv-network/sdk/chains';
 import { and, eq } from '@arkiv-network/sdk/query';
-import { createPublicClient, http, type Hex } from 'viem';
+import { createPublicClient, getAddress, http, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { mainnet, sepolia } from 'viem/chains';
 import { DIGEST_KEY, discover, listing, LISTING, readCode, search, validateManifest, verifyManifest, type Protocol } from '@web3mcp/evm';
+import { browserTransport } from './browser.js';
 import { manifestRecords, publishCalldata, SET_TEXT_SELECTORS } from './records.js';
 import { refreshBatch } from './refresh.js';
 
@@ -16,7 +17,9 @@ const USAGE = `Usage:
   web3mcp-publish check <manifest.json>          also check it against the chain, and print the ENS records to publish
   web3mcp-publish check <ens-name>               discover a published name, as an agent's host would
   web3mcp-publish index <ens-name> --account <foundry-keystore>
-                                                 list a published name on the Arkiv search index, or refresh its listing
+  web3mcp-publish index <ens-name> --browser <your-address>
+                                                 list a published name on the Arkiv search index, or refresh its listing,
+                                                 signed with a Foundry keystore or in your browser wallet
   web3mcp-publish search <word>...               search the Arkiv index, as an agent's search tool does
 
 WEB3MCP_RPC_URL sets the RPC (default: the chain's public one). WEB3MCP_CHAIN=mainnet checks a name on mainnet (default: sepolia).
@@ -25,15 +28,15 @@ WEB3MCP_ARKIV_KEY is an optional Arkiv access key; without one, Arkiv requests u
 const LIFETIME_DAYS = 30;
 
 const env = process.env;
-const [command, target, flag, keystore] = process.argv.slice(2);
-if (!target || !['validate', 'check', 'index', 'search'].includes(command) || (command === 'index' && (flag !== '--account' || !keystore))) {
+const [command, target, flag, signer] = process.argv.slice(2);
+if (!target || !['validate', 'check', 'index', 'search'].includes(command) || (command === 'index' && (!['--account', '--browser'].includes(flag) || !signer))) {
   console.error(USAGE);
   process.exit(2);
 }
 
 try {
   if (command === 'index') {
-    await index(target, keystore);
+    await index(target, flag, signer);
   } else if (command === 'search') {
     const ens = client(env.WEB3MCP_CHAIN === 'mainnet' ? mainnet : sepolia);
     const found = await search(createArkivClient({ chain: arkivChain(), transport: http() }), ens, process.argv.slice(3), ens.chain.id);
@@ -113,31 +116,41 @@ function printTrust(protocol: Protocol) {
 }
 
 /** List a published name on the Arkiv index, or keep its listing alive. Safe to run again at any time. */
-async function index(name: string, keystore: string): Promise<void> {
+async function index(name: string, flag: string, signer: string): Promise<void> {
+  // A browser wallet signs on the local signing page, so only its address is needed here.
+  const browser = flag === '--browser' ? getAddress(signer) : undefined;
   const ens = client(env.WEB3MCP_CHAIN === 'mainnet' ? mainnet : sepolia);
   // ENS is the source of truth: list exactly what the name publishes, after the same checks a host runs.
   const protocol = await discover(ens, name);
   const digest = (await ens.getEnsText({ name: protocol.name, key: DIGEST_KEY }))?.toLowerCase() as Hex;
 
-  const account = privateKeyToAccount(keystoreKey(keystore));
+  const account = browser ?? privateKeyToAccount(keystoreKey(signer));
+  const owner = typeof account === 'string' ? account : account.address;
   const chain = arkivChain();
   const arkiv = createArkivClient({ chain, transport: http() });
-  const wallet = createArkivWallet({ chain, transport: http(), account });
 
   // Only this wallet can change or extend its own listings; anyone else's listing of the name is theirs.
   const { entities } = await arkiv
     .select({ $key: true, digest: true })
     .where(and(eq('arkiv.schema', LISTING), eq('ens', protocol.name)))
-    .ownedBy(account.address)
+    .ownedBy(owner)
     .fetch();
   const expiration = ExpirationTime.fromDays(LIFETIME_DAYS);
   const entry = listing(protocol.manifest, digest);
   // One transaction: drop outdated listings, then extend the current one or write a new one.
   const { current, batch } = refreshBatch(entities, digest, { schema: entry.schema, values: entry.values, expiration }, expiration);
+
+  const old = batch.deletes.length ? `, and delete ${batch.deletes.length} outdated listing${batch.deletes.length > 1 ? 's' : ''}` : '';
+  const page = {
+    protocol: protocol.name,
+    title: `${current ? 'Keep' : 'List'} ${protocol.name} in Web3MCP search`,
+    description: `${current ? 'Extend its search listing' : 'Write its search listing'} on Arkiv for ${LIFETIME_DAYS} days${old}`,
+  };
+  const wallet = createArkivWallet({ chain, transport: browser ? browserTransport(chain, page) : http(), account });
   const result = await wallet.executeBatch(batch);
 
   const key = current ?? result.createdEntities[0];
-  console.log(`✓ ${protocol.name} ${current ? 'listing extended' : 'listed'} on Arkiv by ${account.address}, for ${LIFETIME_DAYS} days.`);
+  console.log(`✓ ${protocol.name} ${current ? 'listing extended' : 'listed'} on Arkiv by ${owner}, for ${LIFETIME_DAYS} days.`);
   console.log(`  Entity: ${key}`);
   console.log(`  Search terms: ${entry.terms.join(', ')}`);
   console.log(`  Transaction: ${chain.blockExplorers.default.url}/tx/${result.txHash}`);

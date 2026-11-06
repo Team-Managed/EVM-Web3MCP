@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { PreparedCall, PreparedWrite, Protocol } from '@web3mcp/evm';
+import type { Chain } from 'viem';
 
 export type ApprovalStatus = 'pending' | 'submitted' | 'rejected' | 'failed';
 
@@ -10,6 +11,10 @@ export type ApprovalStatus = 'pending' | 'submitted' | 'rejected' | 'failed';
 export interface Approval {
   id: string;
   chainId: number;
+  /** A chain the page doesn't know, which it asks the wallet to add. */
+  chain?: Pick<Chain, 'id' | 'name' | 'nativeCurrency' | 'rpcUrls' | 'blockExplorers'>;
+  /** The page's heading, for a request that isn't one of a protocol's tools. */
+  title?: string;
   protocol: string;
   tool: string;
   account: `0x${string}`;
@@ -48,10 +53,8 @@ export class Approvals {
     private assets = new URL('./approve/', import.meta.url),
   ) {}
 
-  async create(prepared: PreparedWrite, protocol: Protocol, tool: string): Promise<{ id: string; url: string }> {
-    const id = randomBytes(16).toString('hex');
-    this.approvals.set(id, {
-      id,
+  create(prepared: PreparedWrite, protocol: Protocol, tool: string): Promise<{ id: string; url: string }> {
+    return this.request({
       chainId: protocol.manifest.chainId,
       protocol: protocol.name,
       tool,
@@ -69,9 +72,13 @@ export class Approvals {
       })),
       assetChanges: prepared.assetChanges,
       trust: Object.entries(protocol.contracts).map(([alias, c]) => ({ alias, address: c.address, trust: c.trust })),
-      status: 'pending',
-      hashes: [],
     });
+  }
+
+  /** Put any transaction on the signing page, such as the publisher's Arkiv listing; create() fills one from a prepared write. */
+  async request(fields: Omit<Approval, 'id' | 'status' | 'hashes'>): Promise<{ id: string; url: string }> {
+    const id = randomBytes(16).toString('hex');
+    this.approvals.set(id, { ...fields, id, status: 'pending', hashes: [] });
     const url = `${await this.start()}/approve/${id}`;
     this.open(url);
     return { id, url };

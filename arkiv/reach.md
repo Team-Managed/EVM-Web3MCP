@@ -11,7 +11,7 @@ Yes, on Sepolia and Arkiv's Rabdi testnet:
 
 - Search the index: `npx web3mcp-publish search swap usdc` (after `npm ci && npm run build`).
 - Use it from an agent: install the plugin (see the [README](../README.md#install)) and ask for a swap without naming a protocol.
-- List your own protocol: publish a manifest on your ENS name, then run `npx web3mcp-publish index <your-name.eth> --account <keystore>`.
+- List your own protocol: publish a manifest on your ENS name, then run `npx web3mcp-publish index <your-name.eth> --browser <your-address>` and sign in your browser wallet.
 
 ## Numbers
 

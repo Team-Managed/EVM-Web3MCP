@@ -32,7 +32,7 @@ node <this skill's folder>/scripts/web3mcp-publish.mjs check vault.myprotocol.et
 - `check <manifest.json>` validates the manifest exactly as hosts do, then checks the chain: every contract has code, every declared function is in it (proxies included), and each contract's trust level. It prints the two ENS records to publish and, when the name has a resolver, a `cast send` command that sets both in one transaction. It says when ENS already has this exact manifest.
 - `check <ens-name>` discovers a published name the way an agent's host does.
 - `validate <manifest.json>` checks the format only, offline.
-- `index <ens-name> --account <foundry-keystore>` lists a published name on the Arkiv search index, so agents can find it from a goal without its name. It's optional, signs with the user's Foundry keystore, and needs testnet tGLM from hub.arkiv.network/faucet. Run it again within 30 days to keep the listing.
+- `index <ens-name> --browser <their-address>` lists a published name on the Arkiv search index, so agents can find it from a goal without its name. It's optional. It opens the local signing page, where the user signs in their browser wallet; `--account <foundry-keystore>` signs with a Foundry keystore instead. The wallet needs testnet tGLM from hub.arkiv.network/faucet. Run it again within 30 days to keep the listing.
 - `search <word>...` searches that index the way an agent does.
 
 Set `WEB3MCP_RPC_URL` to a reliable RPC, such as `https://ethereum-sepolia-rpc.publicnode.com`, because the default public one rate-limits. Set `WEB3MCP_CHAIN=mainnet` to check a name on mainnet. If `check` passes, discovery will too. Fix everything it reports before publishing, since publishing costs gas.

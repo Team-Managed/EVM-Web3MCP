@@ -20,7 +20,7 @@ Notes from building the Web3MCP search index on Rabdi with `@arkiv-network/sdk` 
 - **Typed queries over dynamic attributes.** A schema's `where` only takes the schema's own columns, so our per-term attributes need an untyped query, with values unwrapped from `{ type, value }` by hand.
 - **`str` is 128 bytes.** That's short for a one-line description (we allow 200 characters), so ours goes in `bytes`. It's documented, but surprising.
 - **Docs drift.** The npm README's install output shows `"@arkiv-network/sdk": "^0.9.0"` while npm has 1.0.1. Web search also turns up docs for SDK 0.4.4 on the `mendoza` chain and 0.6.0 on `kaolin`, while the current testnet is Rabdi.
-- **Keys in `.env`.** The README's first example puts `PRIVATE_KEY` in `.env`. An example that signs with a keystore or a browser wallet would steer people away from that. We decrypt a Foundry keystore with `cast` instead.
+- **Keys in `.env`.** The README's first example puts `PRIVATE_KEY` in `.env`. An example that signs with a keystore or a browser wallet would steer people away from that. We sign in the publisher's browser wallet, or with a Foundry keystore decrypted by `cast`.
 
 ## What worked well
 
