@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "web3mcp",
   "version": "0.0.1",
-  "description": "Discover validated EVM Web3MCP tools through a separately configured local MCP server. Fixture discovery only.",
+  "description": "Offline fixture discovery and explicit live ENS discovery on Sepolia through a separately registered MCP server, with reads, write simulation, and user-controlled wallet signing handoff.",
   "author": { "name": "Team-Managed" },
   "license": "Apache-2.0"
 }

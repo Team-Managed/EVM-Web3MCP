@@ -6,5 +6,5 @@
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true
   },
-  "include": ["packages/*/test", "apps/*/test"]
+  "include": ["packages/*/test", "apps/*/test", "plugins/codex/scripts", "plugins/codex/test"]
 }

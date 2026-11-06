@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 test('portable plugin and skill metadata', async () => {
   const plugin = JSON.parse(await readFile(new URL('../plugin.json', import.meta.url), 'utf8'));
@@ -24,20 +25,21 @@ test('real stdio discovery from unrelated cwd with spaces', async () => {
     command: process.execPath,
     args: [fileURLToPath(new URL('../scripts/serve.ts', import.meta.url))],
     cwd,
-    env: { ...process.env, WEB3MCP_MANIFEST_DIR: join(cwd, 'wrong-directory') } as Record<string, string>,
+    env: { ...process.env, WEB3MCP_MODE: 'fixture', WEB3MCP_RPC_URL: 'invalid', WEB3MCP_MANIFEST_DIR: join(cwd, 'wrong-directory') } as Record<string, string>,
   });
   try {
     await client.connect(transport);
-    const result = await client.callTool({ name: 'discover', arguments: { name: 'vault.web3mcp-demo.eth' } });
+    const result = await client.callTool({ name: 'discover', arguments: { name: 'vault.web3mcp-demo.eth' } }) as CallToolResult;
     assert.ok(!result.isError, result.content.map((item) => item.type === 'text' ? item.text : '').join('\n'));
     assert.deepEqual(result.content, [{
       type: 'text',
       text: 'Discovered vault.web3mcp-demo.eth from a local manifest file, chain 11155111.\n' +
         'Contracts: not checked on chain.\n' +
-        "Tools: vault_get_balance, tx_vault_deposit, tx_vault_withdraw. If these don't appear in your tool list, run them with the call tool.",
+        "Tools: vault_get_balance(owner), tx_vault_deposit(amount), tx_vault_withdraw(amount). If these don't appear in your tool list, run reads with the read tool and writes with the call tool, using these input names.",
     }]);
     const { tools } = await client.listTools();
-    assert.deepEqual(tools.map(({ name }) => name).sort(), ['call', 'discover', 'status', 'tx_vault_deposit', 'tx_vault_withdraw', 'vault_get_balance']);
+    assert.deepEqual(tools.map(({ name }) => name).sort(), ['call', 'discover', 'read', 'status', 'tx_vault_deposit', 'tx_vault_withdraw', 'vault_get_balance', 'wallet']);
+    assert.equal(tools.find((tool) => tool.name === 'status')?.annotations?.readOnlyHint, true);
     for (const name of ['vault_get_balance', 'tx_vault_deposit', 'tx_vault_withdraw']) {
       assert.equal(tools.find((tool) => tool.name === name)?.annotations?.readOnlyHint, !name.startsWith('tx_'));
     }

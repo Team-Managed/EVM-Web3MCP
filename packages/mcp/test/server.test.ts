@@ -32,7 +32,7 @@ const call = async (client: Client, name: string, args: Record<string, unknown>)
 
 test('discover registers protocol tools and tells the client', async () => {
   const { client, changes } = await connect();
-  assert.deepEqual(await toolNames(client), ['call', 'discover', 'status']);
+  assert.deepEqual(await toolNames(client), ['call', 'discover', 'read', 'status', 'wallet']);
 
   const result = await call(client, 'discover', { name: 'vault.web3mcp-demo.eth' });
   const first = result.content[0];
@@ -40,10 +40,12 @@ test('discover registers protocol tools and tells the client', async () => {
   assert.deepEqual(await toolNames(client), [
     'call',
     'discover',
+    'read',
     'status',
     'tx_vault_deposit',
     'tx_vault_withdraw',
     'vault_get_balance',
+    'wallet',
   ]);
   assert.ok(changes.length > 0, 'expected notifications/tools/list_changed');
 
@@ -100,7 +102,7 @@ test('discovering a protocol again refreshes its tools and drops pulled ones', a
   await call(client, 'discover', { name: 'vault.web3mcp-demo.eth' });
 
   const { tools } = await client.listTools();
-  assert.deepEqual(tools.map((t) => t.name).sort(), ['call', 'discover', 'status', 'tx_vault_deposit', 'vault_get_balance']);
+  assert.deepEqual(tools.map((t) => t.name).sort(), ['call', 'discover', 'read', 'status', 'tx_vault_deposit', 'vault_get_balance', 'wallet']);
   assert.match(tools.find((t) => t.name === 'tx_vault_deposit')?.description ?? '', /new description/);
   assert.equal((await call(client, 'call', { tool: 'tx_vault_withdraw', args: { amount: '1' } })).isError, true);
 });
@@ -156,4 +158,40 @@ test('a failed wallet lookup is retried, and reads never wait on it', async () =
   // The failure isn't cached, so the write's own lookup succeeds.
   const review = await call(client, 'tx_vault_deposit', { amount: '10' });
   assert.ok(!review.isError, textOf(review));
+});
+
+test('the wallet tool sets the wallet writes are simulated for', async () => {
+  const chain = vaultChain({
+    addresses: { 'riya.eth': '0x00000000000000000000000000000000000000AA' },
+    read: (fn) => ({ decimals: 6, balanceOf: 10_500000n, allowance: 0n })[fn],
+    simulate: (calls) => ({ results: calls.map(() => ({ status: 'success' })), assetChanges: [] }),
+  });
+  const { client } = await connect({ client: fakeClient(chain), approvals: new Approvals(() => {}) });
+  await call(client, 'discover', { name: 'vault.web3mcp-demo.eth' });
+
+  const before = await call(client, 'tx_vault_deposit', { amount: '10' });
+  assert.equal(before.isError, true);
+  assert.match(textOf(before), /No wallet set/);
+  assert.match(textOf(await call(client, 'wallet', {})), /No wallet set/);
+  assert.equal((await call(client, 'wallet', { address: 'nobody.eth' })).isError, true);
+
+  assert.match(textOf(await call(client, 'wallet', { address: 'riya.eth' })), /riya\.eth \(0x0+AA\)/);
+  assert.match(textOf(await call(client, 'tx_vault_deposit', { amount: '10' })), /for 0x0+AA\. The simulation succeeded/);
+});
+
+test('read runs discovered reads only, and discover lists each tool\'s inputs', async () => {
+  const chain = vaultChain({ read: (fn) => ({ decimals: 6, balanceOf: 10_500000n })[fn] });
+  const { client } = await connect({ client: fakeClient(chain), approvals: new Approvals(() => {}) });
+  const discovered = textOf(await call(client, 'discover', { name: 'vault.web3mcp-demo.eth' }));
+  assert.match(discovered, /vault_get_balance\(owner\), tx_vault_deposit\(amount\)/);
+
+  const tools = (await client.listTools()).tools;
+  assert.equal(tools.find((t) => t.name === 'read')?.annotations?.readOnlyHint, true);
+  assert.equal(tools.find((t) => t.name === 'call')?.annotations?.readOnlyHint, false);
+
+  const owner = '0x00000000000000000000000000000000000000aa';
+  assert.equal(textOf(await call(client, 'read', { tool: 'vault_get_balance', args: { owner } })), '10.5 USDC');
+  const write = await call(client, 'read', { tool: 'tx_vault_deposit', args: { amount: '1' } });
+  assert.equal(write.isError, true);
+  assert.match(textOf(write), /is a write\. Run it with the call tool/);
 });
