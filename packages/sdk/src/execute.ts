@@ -1,4 +1,5 @@
 import {
+  BaseError,
   encodeFunctionData,
   erc20Abi,
   formatUnits,
@@ -26,8 +27,22 @@ export interface PreparedCall {
   to: Address;
   data: Hex;
   value?: bigint;
-  /** Readable form, such as `usdc.approve(vault, 10000000)`. */
+  /** Gas limit to suggest to the wallet, for calls near the per-transaction cap. */
+  gas?: bigint;
+  /** Readable form, such as `usdc.approve(vault, 10 USDC)`. */
   description: string;
+  /** The same step in parts, for the signing page. */
+  kind?: 'approve' | 'call';
+  contract?: string;
+  method?: string;
+  args?: ShownArg[];
+}
+
+/** An argument as a person reads it: `10 USDC`, `web3mcp.eth` with its resolved address, `you`. */
+export interface ShownArg {
+  name: string;
+  value: string;
+  address?: Address;
 }
 
 export interface AssetChange {
@@ -65,6 +80,7 @@ export async function executeRead(
   const ctx = new Bindings(client, protocol, tool, input, account);
   const fn = toFunction(tool.call.function);
   const args = await ctx.args(tool.call.args, fn.inputs);
+  // An eth_call, so a dryRun function runs for real on the node but nothing is sent or saved.
   const result = await client.readContract({
     address: protocol.contracts[tool.call.contract].address,
     abi: [fn],
@@ -72,7 +88,7 @@ export async function executeRead(
     args,
   });
   if (tool.output && typeof result === 'bigint') {
-    const decimals = await ctx.decimals(tool.output.decimalsFrom);
+    const decimals = tool.output.decimals ?? (await ctx.decimals(tool.output.decimalsFrom!));
     return `${formatUnits(result, decimals)}${tool.output.symbol ? ` ${tool.output.symbol}` : ''}`;
   }
   return jsonSafe(result);
@@ -94,8 +110,6 @@ export async function prepareWrite(
   // Public RPCs spread requests across nodes, and a node one block behind rejects the newest block number
   // ("block not found"). Reading and simulating two blocks back keeps every node in agreement.
   const blockNumber = (await client.getBlockNumber({ cacheTime: 0 })) - 2n;
-  const aliasOf = (address: Address) =>
-    Object.entries(protocol.contracts).find(([, c]) => c.address === address)?.[0] ?? address;
   const calls: PreparedCall[] = [];
   for (const step of tool.steps) {
     if ('approve' in step) {
@@ -110,21 +124,36 @@ export async function prepareWrite(
         blockNumber,
       });
       if (allowance >= amount) continue;
+      const args = [
+        { name: 'spender', value: step.approve.spender, address: spender },
+        { name: 'amount', ...(await ctx.show(step.approve.amount, amount)) },
+      ];
       calls.push({
         to: token,
         data: encodeFunctionData({ abi: erc20Abi, functionName: 'approve', args: [spender, amount] }),
-        description: `${step.approve.token}.approve(${step.approve.spender}, ${amount})`,
+        description: `${step.approve.token}.approve(${args.map((a) => a.value).join(', ')})`,
+        kind: 'approve',
+        contract: step.approve.token,
+        method: 'approve',
+        args,
       });
       continue;
     }
     const fn = toFunction(step.call.function);
-    const args = await ctx.args(step.call.args, fn.inputs);
+    const values = await ctx.args(step.call.args, fn.inputs);
     const value = step.call.value ? ((await ctx.bind(step.call.value, { type: 'uint256' })) as bigint) : undefined;
+    const args = await Promise.all(
+      step.call.args.map(async (b, i) => ({ name: fn.inputs[i].name || `arg${i + 1}`, ...(await ctx.show(b, values[i])) })),
+    );
     calls.push({
       to: protocol.contracts[step.call.contract].address,
-      data: encodeFunctionData({ abi: [fn], functionName: fn.name, args }),
+      data: encodeFunctionData({ abi: [fn], functionName: fn.name, args: values }),
       value,
-      description: `${step.call.contract}.${fn.name}(${args.map((a) => (typeof a === 'string' ? aliasOf(a as Address) : String(a))).join(', ')})`,
+      description: `${step.call.contract}.${fn.name}(${args.map((a) => a.value).join(', ')})`,
+      kind: 'call',
+      contract: step.call.contract,
+      method: fn.name,
+      args,
     });
   }
 
@@ -136,7 +165,10 @@ export async function prepareWrite(
   });
   const failed = simulation.results.findIndex((r) => r.status !== 'success');
   if (failed >= 0) {
-    const reason = simulation.results[failed].error?.message ?? 'reverted';
+    const error = simulation.results[failed].error;
+    // The contract's own revert reason when it gave one, without viem's debug details.
+    const reverted = error instanceof BaseError ? (error.walk((e) => !!(e as { reason?: string }).reason) as { reason?: string } | null) : null;
+    const reason = reverted?.reason ?? error?.message ?? 'reverted';
     throw new ToolError(`Simulation failed at step ${failed + 1} (${calls[failed].description}): ${reason}`);
   }
   const assetChanges = simulation.assetChanges
@@ -185,6 +217,21 @@ class Bindings {
     return this.resolved.get(key);
   }
 
+  /** How a bound value reads to a person: an input as they typed it, with its token or resolved address. */
+  async show(binding: string, value: unknown): Promise<Omit<ShownArg, 'name'>> {
+    const address = typeof value === 'string' && isAddress(value) ? (value as Address) : undefined;
+    const alias = address && Object.entries(this.protocol.contracts).find(([, c]) => c.address === address)?.[0];
+    if (alias) return { value: alias, address };
+    if (binding === '$sender') return { value: 'you', address };
+    const [root, key] = binding.slice(1).split('.', 2);
+    if (!binding.startsWith('$') || root !== 'input') return { value: address ?? String(value), address };
+    const declared = this.tool.inputs[key];
+    const text = String(this.input[key]).trim();
+    if (declared.type === 'amount') return { value: `${text} ${declared.token!.toUpperCase()}` };
+    if (declared.type === 'ether') return { value: `${text} ETH` };
+    return { value: address && text.toLowerCase() !== address.toLowerCase() ? text : (address ?? text), address };
+  }
+
   decimals(alias: string): Promise<number> {
     if (!this.decimalsCache.has(alias)) {
       this.decimalsCache.set(
@@ -205,12 +252,13 @@ class Bindings {
     switch (declared.type) {
       case 'address':
         return resolveAddress(this.client, text);
-      case 'amount': {
+      case 'amount':
+      case 'ether': {
         if (!/^\d+(\.\d+)?$/.test(text)) throw new ToolError(`"${name}" must be a plain decimal amount, such as 10.5.`);
-        const decimals = await this.decimals(declared.token!);
+        const decimals = declared.type === 'ether' ? 18 : await this.decimals(declared.token!);
         // parseUnits would silently round extra digits, so 0.0000001 USDC would become 0.
         if ((text.split('.')[1]?.length ?? 0) > decimals) {
-          throw new ToolError(`"${name}" has more decimal places than ${declared.token} supports (${decimals}).`);
+          throw new ToolError(`"${name}" has more decimal places than ${declared.token ?? 'ETH'} supports (${decimals}).`);
         }
         return parseUnits(text, decimals);
       }
