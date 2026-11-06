@@ -72,11 +72,6 @@ export function Hero() {
           </a>
         </div>
 
-        {/* Centered Spec Details */}
-        <div className="inline-flex items-center gap-2 font-sans text-xs select-text" style={{ color: "#16181B" }}>
-          <span className="font-sans text-[#111316] font-semibold">Open Source Standard</span>
-          <span className="text-[#5A5D64] font-medium">• Node 22+ & TypeScript • Zero Key Custody</span>
-        </div>
       </div>
     </section>
   );
