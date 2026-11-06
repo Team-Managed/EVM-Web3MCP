@@ -2,7 +2,29 @@
 
 Codex integration for discovering and using validated EVM protocol tools through the Web3MCP MCP server.
 
-The local launcher defaults to offline fixture discovery. Explicit live mode enables Sepolia ENS discovery, contract reads, and write preparation through the shared SDK/MCP. After successful simulation, the shared server opens a local signing page. The user reviews and signs in their browser wallet; the agent never signs or handles signing credentials.
+## Install
+
+Codex installs the same plugin as Claude Code from this repository's marketplace: the bundled server, the local signing page and the skill. Nothing is downloaded from npm and nothing is built; Node 22+ is the only requirement.
+
+```sh
+codex plugin marketplace add Team-Managed/EVM-Web3MCP
+codex plugin add web3mcp@evm-web3mcp
+```
+
+Restart Codex. The plugin's `mcp.json` starts `node ./server/web3mcp.mjs` from the installed plugin folder, on Sepolia with a public RPC.
+
+Codex plugins can't take settings such as a wallet address, and the server sees no other environment, so tell Codex your wallet in the conversation, for example "my wallet is yourname.eth". The skill passes it to the `wallet` tool; it's your public address or ENS name, never a key, and it lasts for the session.
+
+Codex doesn't pick up the tools `discover` adds, so it runs them through `read`, which is read-only, and `call`. Codex asks before a `call`, so every write needs your approval before the signing page opens, much as the Claude Code plugin's hook asks. To say so explicitly in `~/.codex/config.toml`:
+
+```toml
+[plugins."web3mcp@evm-web3mcp".mcp_servers.web3mcp]
+default_tools_approval_mode = "writes"
+```
+
+Then sign on the signing page in your own wallet. The agent never signs or handles signing credentials.
+
+The rest of this page covers the development launcher in this folder: an offline fixture mode and a Sepolia live mode with configuration checks. It needs the repository built.
 
 ## Build
 
@@ -18,7 +40,7 @@ npm test
 node --test plugins/codex/test/*.test.ts
 ```
 
-## Manual install and activation
+## Development launcher: install and activation
 
 ### Windows PowerShell
 
@@ -154,7 +176,7 @@ Expected MCP response:
 ```text
 Discovered vault.web3mcp-demo.eth from a local manifest file, chain 11155111.
 Contracts: not checked on chain.
-Tools: vault_get_balance, tx_vault_deposit, tx_vault_withdraw. If these don't appear in your tool list, run them with the call tool.
+Tools: vault_get_balance(owner), tx_vault_deposit(amount), tx_vault_withdraw(amount). If these don't appear in your tool list, run reads with the read tool and writes with the call tool, using these input names.
 ```
 
 Discovered tools:
@@ -165,7 +187,7 @@ Discovered tools:
 
 This proves fixture-backed discovery through MCP, not live ENS resolution or blockchain execution.
 
-The server also exposes `discover`, `call`, and the read-only `status` tool. Fixture mode remains offline and cannot execute the discovered contract tools.
+The server also exposes `discover`, `call`, and the read-only `read`, `status` and `wallet` tools. Fixture mode remains offline and cannot execute the discovered contract tools.
 
 The integration test launches the actual stdio server and checks registered read/write annotations without executing discovered tools.
 
@@ -225,13 +247,9 @@ The root `plugin.json` and `skills/` structure follow the portable agent plugin 
 
 https://developers.openai.com/plugins/build/plugins
 
-This is a skills-only plugin package. The manual skill installation above is the currently tested activation method.
+This folder is a skills-only plugin package for the development launcher, installed manually as above. It has no plugin-level `mcp.json`: the launcher depends on sibling server packages and fixtures outside the folder, and Codex copies only the plugin folder into its cache.
 
-There is intentionally no plugin-level `mcp.json`. The local MCP launcher depends on sibling server packages and fixtures outside the plugin folder. Plugin caching may omit these dependencies.
-
-Installing the plugin alone does not automatically register the MCP server.
-
-Automatic plugin installation and cache activation have not been verified.
+The plugin people install is `plugins/claude-code`, the one in this repository's marketplace. Codex reads that marketplace (`.claude-plugin/marketplace.json`), copies the plugin folder into its cache, and uses the folder's portable `plugin.json` and `mcp.json`; Claude Code uses `.claude-plugin/plugin.json` and `.mcp.json` in the same folder. Both start the same bundled server and signing page.
 
 The shared SDK prepares and simulates write calls, including allowance checks and asset changes. The shared MCP serves the signing page and tracks results through `status`; no separate signing implementation lives in this plugin. The current SDK supplies readable step metadata, including contract, method, and arguments. The signing page presents a step-by-step wallet-to-contract flow, ETH value, trust information, and wallet/confirmation progress with transaction links. These presentation updates do not authorize signing or establish actual token receipts; the manual verification snapshot above predates these incoming UI updates. The page uses an injected browser wallet, batching when supported or submitting sequentially with confirmation between steps. Sequential execution can partially complete before a later failure. Approval records are held in memory and are lost on server restart. Wallet-controlled submission costs Sepolia gas; simulation alone does not. No signing credentials are accepted by the launcher or agent.
 

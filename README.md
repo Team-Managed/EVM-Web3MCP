@@ -41,9 +41,17 @@ claude plugin marketplace add Team-Managed/EVM-Web3MCP
 claude plugin install web3mcp@evm-web3mcp
 ```
 
-Codex: see [plugins/codex](plugins/codex/README.md).
+Codex installs the same plugin from the same marketplace:
 
-The plugin carries the server as one bundled file (`plugins/claude-code/server/`), so it needs only Node 22 or newer; nothing is downloaded from npm. Set your wallet address in the plugin's options so writes can be simulated.
+```bash
+codex plugin marketplace add Team-Managed/EVM-Web3MCP
+```
+
+```bash
+codex plugin add web3mcp@evm-web3mcp
+```
+
+The plugin carries the server as one bundled file (`plugins/claude-code/server/`) with the signing page, so it needs only Node 22 or newer; nothing is downloaded from npm. Claude Code takes your wallet address from the plugin's options. In Codex, or any time, tell the agent your wallet ("my wallet is yourname.eth") and it sets it with the `wallet` tool. More on Codex, including a development launcher: [plugins/codex](plugins/codex/README.md).
 
 ## Develop
 
