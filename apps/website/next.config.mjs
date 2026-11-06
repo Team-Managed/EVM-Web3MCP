@@ -4,7 +4,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  output: process.env.NODE_ENV === "production" ? "export" : undefined,
+  output: "export",
 };
 
 export default nextConfig;

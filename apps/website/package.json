@@ -6,13 +6,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "framer-motion": "^12.4.7",
-    "gsap": "^3.12.7",
     "lucide-react": "^0.475.0",
+    "mermaid": "^11.17.2",
     "next": "^15.1.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
@@ -27,4 +25,3 @@
     "typescript": "^5.9.3"
   }
 }
-

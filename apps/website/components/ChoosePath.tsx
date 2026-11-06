@@ -108,7 +108,7 @@ export function ChoosePath() {
             {/* Action CTA */}
             <div className="mt-6 pt-2">
               <a
-                href="/docs/latest#plugins"
+                href="/docs#plugins"
                 className="inline-flex items-center gap-2 text-xs font-mono font-semibold text-white bg-white/10 hover:bg-white/20 px-4 py-2.5 rounded-xl border border-white/20 transition-colors shadow-xs"
               >
                 <span>Open Installation Guide</span>
@@ -236,7 +236,7 @@ export function ChoosePath() {
             {/* Action CTA */}
             <div className="mt-6 pt-2">
               <a
-                href="/docs/latest#plugins"
+                href="/docs#plugins"
                 className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-[#111316] font-semibold hover:text-[#E57E25] transition-colors"
               >
                 <span>Configure Codex Server</span>
@@ -316,7 +316,7 @@ export function ChoosePath() {
             {/* Action CTA */}
             <div className="mt-6 pt-2">
               <a
-                href="/docs/latest#guarantees"
+                href="/docs#guarantees"
                 className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-[#111316] font-semibold hover:text-[#E57E25] transition-colors"
               >
                 <span>Inspect approve-ui Architecture</span>
