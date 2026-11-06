@@ -1,0 +1,34 @@
+import type { Metadata } from "next";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "Web3MCP — The Open Protocol Between Smart Contracts and AI Agents",
+  description:
+    "Smart contracts publish tool manifests under their own ENS name. One generic MCP host discovers them, reads contracts, simulates writes, and routes signing to your wallet.",
+  keywords: ["Ethereum", "ENS", "Model Context Protocol", "MCP", "AI Agents", "Smart Contracts", "ETHGlobal"],
+  icons: {
+    icon: "/logo.svg",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className="scroll-smooth">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="bg-[#EAE8E1] text-[#111316] antialiased selection:bg-[#E57E25] selection:text-white">
+        {children}
+      </body>
+    </html>
+  );
+}
