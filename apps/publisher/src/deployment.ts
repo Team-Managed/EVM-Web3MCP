@@ -12,10 +12,11 @@ export const DEPLOYMENT = {
   usdc: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
   root: '0xB458D6a3a77919449d03e7A6903C26827c1eC43f',
   ethRegistry: '0xD4eBcbBdF463C9c45784603Db0dDD499BC44A8B4',
-  account: '0xa5a8De5F395DF88225424E2eb50ba9210b0D152C',
+  // web3mcp.eth's owner deploys and owns GiftBox, so it can give GiftBox its primary name.
+  account: '0x99230d725DaEFb3571917661755feBB309822ECb',
   salt: '0x8b4f7a949cac977df2f05b69a4c486d645a30e57166d88d616bc8545d12c653d',
-  address: '0x4dE77bbB49885C92e2149C9b06054886c848E842',
-  initCodeHash: '0x8d4c8877f9ecb8aebcef1ddb50449eea9e1d7b67817dbfcf540be53c4607d6e3',
+  address: '0xdcF1c9809aA58C7C390753E43dE25Dd064F7eda8',
+  initCodeHash: '0x0699dce7a9dd22adb2611a4a916e1dcc3ee7426f48c2a3e94e62d2d340f434cc',
   factoryHash: '0x2fa86add0aed31f33a762c9d88e807c475bd51d0f52bd0955754b2608f7e4989',
 } as const;
 interface Artifact {
@@ -29,12 +30,12 @@ export type DeploymentClient = Pick<PublicClient, 'getChainId' | 'getCode' | 're
 const abi = parseAbi([
   'function getSubregistry(string) view returns(address)', 'function decimals() view returns(uint8)',
   'function paused() view returns(bool)', 'function isBlacklisted(address) view returns(bool)',
-  'function root() view returns(address)', 'function usdc() view returns(address)',
+  'function root() view returns(address)', 'function usdc() view returns(address)', 'function owner() view returns(address)',
 ]);
 const same = (a: string | undefined | null, b: string) => a?.toLowerCase() === b.toLowerCase();
 
 export function deriveDeployment(bytecode: Hex, contractAbi: Abi) {
-  const initCode = encodeDeployData({ abi: contractAbi, bytecode, args: [DEPLOYMENT.usdc, DEPLOYMENT.root] });
+  const initCode = encodeDeployData({ abi: contractAbi, bytecode, args: [DEPLOYMENT.account, DEPLOYMENT.usdc, DEPLOYMENT.root] });
   return { data: concatHex([DEPLOYMENT.salt, initCode]), initCodeHash: keccak256(initCode),
     address: getCreate2Address({ from: DEPLOYMENT.factory, salt: DEPLOYMENT.salt, bytecode: initCode }) };
 }
@@ -104,7 +105,7 @@ export async function prepareDeployment(client: DeploymentClient, reviewedGasLim
   const prepared: PreparedWrite = { protocol: 'GiftBox deployment (not ENS-published)', tool: 'deploy_giftbox', account: DEPLOYMENT.account,
     calls: [{ to: DEPLOYMENT.factory, value: 0n, data: plan.data, gas,
       description: `Deploy GiftBox at ${plan.address} through the CREATE2 factory`, kind: 'call', contract: 'create2_factory',
-      args: [{ name: 'USDC', value: DEPLOYMENT.usdc }, { name: 'ENS root', value: DEPLOYMENT.root },
+      args: [{ name: 'owner', value: DEPLOYMENT.account }, { name: 'USDC', value: DEPLOYMENT.usdc }, { name: 'ENS root', value: DEPLOYMENT.root },
         { name: 'salt', value: DEPLOYMENT.salt }, { name: 'init-code hash', value: plan.initCodeHash }] }], assetChanges: [] };
   return { ...plan, estimate, gas, balance, maxFeePerGas, prepared };
 }
@@ -134,7 +135,8 @@ export async function verifyDeployment(client: DeploymentClient, hash: Hex) {
   if (!matchesRuntime(runtime, plan.artifact)) throw new Error('Deployed runtime differs from the reviewed artifact.');
   const root = await client.readContract({ address: plan.address, abi, functionName: 'root' });
   const token = await client.readContract({ address: plan.address, abi, functionName: 'usdc' });
-  if (!same(root, DEPLOYMENT.root) || !same(token, DEPLOYMENT.usdc)) throw new Error('Deployed constructor getters mismatch.');
+  const owner = await client.readContract({ address: plan.address, abi, functionName: 'owner' });
+  if (!same(root, DEPLOYMENT.root) || !same(token, DEPLOYMENT.usdc) || !same(owner, DEPLOYMENT.account)) throw new Error('Deployed constructor getters mismatch.');
   return { status: 'confirmed', hash, address: plan.address, blockNumber: receipt.blockNumber.toString(),
-    runtimeHash: keccak256(runtime), usdc: token, root, gasUsed: receipt.gasUsed.toString() };
+    runtimeHash: keccak256(runtime), owner, usdc: token, root, gasUsed: receipt.gasUsed.toString() };
 }

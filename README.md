@@ -81,7 +81,7 @@ It's live on Sepolia at [`0xE17021E2fd5Dd0A6608293E7Ac5E3c361ae30e58`](https://s
 
 ## GiftBox (Sepolia)
 
-GiftBox is an independent ENSv2-based ETH/USDC gifting demo: an unlocked gift belongs to the name's current owner at claim time. It is deployed on Sepolia at `0x4dE77bbB49885C92e2149C9b06054886c848E842`. **`gifts.web3mcp.eth` is not yet ENS-published or discoverable.** See [GiftBox lifecycle, deployment evidence, tools and publication requirements](docs/GIFTBOX.md) and the [deployment manifest](manifests/sepolia/gifts.web3mcp.eth.json). The publisher checks ENSv2 permissions, simulates DNS-name record writes, and supports dry-run review or an explicitly confirmed browser-wallet handoff. Live publication has not been tested or authorized.
+GiftBox is an independent ENSv2-based ETH/USDC gifting demo: an unlocked gift belongs to the name's current owner at claim time. It is deployed on Sepolia at `0xdcF1c9809aA58C7C390753E43dE25Dd064F7eda8` and published at `gifts.web3mcp.eth` (owner-verified). See [GiftBox lifecycle, deployment evidence, tools and publication requirements](docs/GIFTBOX.md) and the [deployment manifest](manifests/sepolia/gifts.web3mcp.eth.json). The publisher checks ENSv2 permissions, simulates the one DNS-name record transaction, and supports dry-run review or an explicitly confirmed browser-wallet handoff; it published `gifts.web3mcp.eth`.
 
 ## Status
 

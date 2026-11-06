@@ -27,6 +27,8 @@ contract GiftBox {
         string message;
     }
 
+    /// ERC-173 owner. ENS lets the owner set this contract's primary name; it has no other power.
+    address public immutable owner;
     address public immutable usdc;
     IGiftRoot public immutable root;
     uint256 public constant RECOVERY_DELAY = 90 days;
@@ -69,10 +71,14 @@ contract GiftBox {
         _entered = false;
     }
 
-    constructor(address usdc_, address root_) {
-        if (usdc_ == address(0) || root_ == address(0) || usdc_.code.length == 0 || root_.code.length == 0) {
+    constructor(address owner_, address usdc_, address root_) {
+        if (
+            owner_ == address(0) || usdc_ == address(0) || root_ == address(0) || usdc_.code.length == 0
+                || root_.code.length == 0
+        ) {
             revert InvalidAddress();
         }
+        owner = owner_;
         usdc = usdc_;
         root = IGiftRoot(root_);
         address registry = root.getSubregistry("eth");
@@ -131,10 +137,9 @@ contract GiftBox {
     function cancel(uint256 id) external guarded {
         Gift storage g = _active(id);
         // Widen before addition: even uint64.max cannot overflow this expression.
-        if (
-            msg.sender != g.sender
-                || (block.timestamp >= g.unlockAt && block.timestamp < uint256(g.unlockAt) + RECOVERY_DELAY)
-        ) revert NotCancellable();
+        bool locked = block.timestamp >= g.unlockAt && block.timestamp < uint256(g.unlockAt) + RECOVERY_DELAY;
+        // A lapsed name has no owner to claim, so the sender may take the gift back before someone re-registers it.
+        if (msg.sender != g.sender || (locked && ownerOf(g.name) != address(0))) revert NotCancellable();
         g.done = true;
         _pay(g, msg.sender);
         emit GiftCancelled(id, keccak256(bytes(g.name)), msg.sender, g.token, g.amount);

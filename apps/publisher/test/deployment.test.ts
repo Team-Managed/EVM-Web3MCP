@@ -6,8 +6,8 @@ import { encodeDeployData, parseAbi, keccak256 } from 'viem';
 import { DEPLOYMENT, deriveDeployment, assertReviewedDeployment, matchesRuntime } from '../dist/deployment.js';
 
 test('CREATE2 payload is salt followed by exactly constructor-encoded creation bytecode', () => {
-  const abi = parseAbi(['constructor(address usdc_,address root_)']);
-  const init = encodeDeployData({ abi, bytecode: '0x6000', args: [DEPLOYMENT.usdc, DEPLOYMENT.root] });
+  const abi = parseAbi(['constructor(address owner_,address usdc_,address root_)']);
+  const init = encodeDeployData({ abi, bytecode: '0x6000', args: [DEPLOYMENT.account, DEPLOYMENT.usdc, DEPLOYMENT.root] });
   const plan = deriveDeployment('0x6000', abi);
   assert.equal(plan.data, `${DEPLOYMENT.salt}${init.slice(2)}`);
   assert.equal(plan.initCodeHash, keccak256(init));

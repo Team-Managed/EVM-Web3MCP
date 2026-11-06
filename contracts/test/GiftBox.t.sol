@@ -188,7 +188,7 @@ contract GiftBoxTest {
         names = new GiftNamesMock();
         root.setSubregistry(address(names));
         token = new GiftTokenMock();
-        box = new GiftBox(address(token), address(root));
+        box = new GiftBox(address(this), address(token), address(root));
         token.mint(address(this), 100e6);
         token.approve(address(box), type(uint256).max);
         names.set("riya", RIYA, type(uint64).max);
@@ -263,6 +263,21 @@ contract GiftBoxTest {
         vm.warp(uint256(UNLOCK) + 90 days);
         box.cancel(id);
         require(box.gifts(id).done);
+    }
+
+    function testLapsedNameLetsSenderCancelBeforeAStrangerRegistersIt() public {
+        uint256 id = send();
+        names.set("riya", RIYA, UNLOCK - 1);
+        vm.warp(UNLOCK);
+        vm.expectRevert(GiftBox.NotCancellable.selector);
+        vm.prank(RIYA);
+        box.cancel(id);
+        box.cancel(id);
+        require(box.gifts(id).done && token.balanceOf(address(this)) == 100e6);
+        names.set("riya", NEW_OWNER, type(uint64).max);
+        vm.expectRevert(GiftBox.InvalidGift.selector);
+        vm.prank(NEW_OWNER);
+        box.claim(id);
     }
 
     function testClaimRemainsPossibleAfterRecoveryBoundary() public {
@@ -400,7 +415,7 @@ contract GiftBoxTest {
 
     function testMaliciousTokenCallbacksCannotDrainOrDoubleClaim() public {
         CallbackGiftToken evil = new CallbackGiftToken();
-        GiftBox escrow = new GiftBox(address(evil), address(root));
+        GiftBox escrow = new GiftBox(address(this), address(evil), address(root));
         evil.mint(address(this), 100e6);
         evil.approve(address(escrow), type(uint256).max);
         names.set("riya", address(evil), type(uint64).max);
@@ -432,13 +447,16 @@ contract GiftBoxTest {
     }
 
     function testConstructorAndMissingRegistry() public {
+        require(box.owner() == address(this));
         vm.expectRevert(GiftBox.InvalidAddress.selector);
-        new GiftBox(address(0), address(root));
+        new GiftBox(address(0), address(token), address(root));
         vm.expectRevert(GiftBox.InvalidAddress.selector);
-        new GiftBox(address(token), address(0));
+        new GiftBox(address(this), address(0), address(root));
+        vm.expectRevert(GiftBox.InvalidAddress.selector);
+        new GiftBox(address(this), address(token), address(0));
         root.setSubregistry(address(0));
         vm.expectRevert(GiftBox.InvalidAddress.selector);
-        new GiftBox(address(token), address(root));
+        new GiftBox(address(this), address(token), address(root));
     }
 
     function testMaxTimestampDoesNotOverflow() public {
