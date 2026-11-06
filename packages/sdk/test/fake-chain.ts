@@ -18,6 +18,7 @@ export interface FakeChain {
 export function fakeClient(chain: FakeChain): ChainClient {
   return {
     chain: { id: chain.chainId ?? 11155111 },
+    getBlockNumber: async () => 100n,
     getEnsText: async ({ name, key }: { name: string; key: string }) => chain.texts?.[name]?.[key] ?? null,
     getEnsName: async ({ address }: { address: Address }) => chain.primaryNames?.[address.toLowerCase()] ?? null,
     getEnsAddress: async ({ name }: { name: string }) => chain.addresses?.[name] ?? null,
