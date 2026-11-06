@@ -21,7 +21,7 @@ Details: [spec/SPEC.md](spec/SPEC.md).
 |---|---|
 | `packages/sdk` | `@web3mcp/evm`: manifest validation now; ENS discovery, reads and writes next |
 | `packages/mcp` | `@web3mcp/mcp`: the generic MCP server |
-| `packages/approve-ui` | Local signing page (planned) |
+| `packages/approve-ui` | Local signing page where your own wallet signs each write |
 | `plugins/claude-code` | Claude Code plugin: MCP server, skill, and a hook that confirms every write |
 | `plugins/codex` | Codex setup |
 | `apps/publisher` | `web3mcp-publish` CLI: `validate` now, publish to ENS next |
@@ -67,7 +67,9 @@ cd contracts && forge test
 
 ## Status
 
-Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes prepared and simulated with balance changes. Next: the local signing page that sends writes to your wallet, Uniswap tools, the demo lease contract, and Arkiv search.
+Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes that are simulated, shown on a local signing page and signed in your own wallet. Next: Uniswap tools, the demo lease contract, publishing the demo names on ENS, and Arkiv search.
+
+To try signing, set `WEB3MCP_ACCOUNT` to your Sepolia wallet before opening Claude Code in this repo, then ask it to approve a spender on `usdc.web3mcp-demo.eth`. Approving moves no tokens.
 
 ## License
 

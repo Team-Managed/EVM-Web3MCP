@@ -29,7 +29,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -p .",
+    "build": "tsc -p . && esbuild ../approve-ui/src/page.ts ../approve-ui/src/page.css --bundle --minify --format=esm --platform=browser --target=es2022 --outdir=dist/approve",
     "test": "node --test \"test/*.test.ts\""
   },
   "dependencies": {

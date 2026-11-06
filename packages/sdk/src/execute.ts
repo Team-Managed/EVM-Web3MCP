@@ -91,6 +91,9 @@ export async function prepareWrite(
   await assertUnchanged(client, protocol);
 
   const ctx = new Bindings(client, protocol, tool, input, account);
+  // Public RPCs spread requests across nodes, and a node one block behind rejects the newest block number
+  // ("block not found"). Reading and simulating two blocks back keeps every node in agreement.
+  const blockNumber = (await client.getBlockNumber({ cacheTime: 0 })) - 2n;
   const aliasOf = (address: Address) =>
     Object.entries(protocol.contracts).find(([, c]) => c.address === address)?.[0] ?? address;
   const calls: PreparedCall[] = [];
@@ -99,7 +102,13 @@ export async function prepareWrite(
       const token = protocol.contracts[step.approve.token].address;
       const spender = protocol.contracts[step.approve.spender].address;
       const amount = (await ctx.bind(step.approve.amount, { type: 'uint256' })) as bigint;
-      const allowance = await client.readContract({ address: token, abi: erc20Abi, functionName: 'allowance', args: [account, spender] });
+      const allowance = await client.readContract({
+        address: token,
+        abi: erc20Abi,
+        functionName: 'allowance',
+        args: [account, spender],
+        blockNumber,
+      });
       if (allowance >= amount) continue;
       calls.push({
         to: token,
@@ -123,6 +132,7 @@ export async function prepareWrite(
     account,
     calls: calls.map(({ to, data, value }) => ({ to, data, value })),
     traceAssetChanges: true,
+    blockNumber,
   });
   const failed = simulation.results.findIndex((r) => r.status !== 'success');
   if (failed >= 0) {
