@@ -32,6 +32,8 @@ interface Call {
 interface Approval {
   id: string;
   chainId: number;
+  chain?: Chain;
+  title?: string;
   protocol: string;
   tool: string;
   account: Address;
@@ -69,7 +71,9 @@ function button(label: string, onClick: () => void, kind = 'primary') {
   return el;
 }
 
-const chainOf = (chainId: number): Chain | undefined => [sepolia, mainnet].find((c) => c.id === chainId);
+// A chain the page doesn't know comes from the local server that opened it, never from a manifest.
+const chainOf = ({ chainId, chain }: Approval): Chain | undefined =>
+  [sepolia, mainnet].find((c) => c.id === chainId) ?? (chain?.id === chainId ? chain : undefined);
 const isRejection = (e: unknown) =>
   e instanceof BaseError ? !!e.walk((x) => (x as { code?: number }).code === 4001) : (e as { code?: number })?.code === 4001;
 const messageOf = (e: unknown) => (e instanceof BaseError ? e.shortMessage : e instanceof Error ? e.message : String(e));
@@ -95,6 +99,7 @@ function words(name: string) {
 }
 
 function title() {
+  if (approval.title) return approval.title;
   const outs = approval.assetChanges.filter((a) => a.change.startsWith('-'));
   const ins = approval.assetChanges.filter((a) => !a.change.startsWith('-'));
   const of = (a: Approval['assetChanges'][number]) => `${amount(a.change)} ${a.symbol ?? short(a.token)}`;
@@ -137,11 +142,17 @@ function mark(i: number, state: StepState, hash?: Hex) {
 }
 
 async function sign() {
-  const chain = chainOf(approval.chainId);
+  const chain = chainOf(approval);
   if (!chain || !window.ethereum || !connected) return;
   const wallet = createWalletClient({ account: connected, chain, transport: custom(window.ethereum) });
   const reader = createPublicClient({ chain, transport: custom(window.ethereum) });
-  if ((await wallet.getChainId()) !== chain.id) await wallet.switchChain({ id: chain.id });
+  if ((await wallet.getChainId()) !== chain.id) {
+    await wallet.switchChain({ id: chain.id }).catch((e) => {
+      // A wallet that doesn't know the chain yet gets asked to add it, which also switches to it.
+      if (isRejection(e) || !approval.chain) throw e;
+      return wallet.addChain({ chain });
+    });
+  }
   const calls = approval.calls.map((c) => ({
     to: c.to,
     data: c.data,
@@ -361,7 +372,7 @@ function details(explorer?: string) {
 }
 
 function render() {
-  const chain = chainOf(approval.chainId);
+  const chain = chainOf(approval);
   const explorer = chain?.blockExplorers?.default.url;
   app.replaceChildren(
     h(

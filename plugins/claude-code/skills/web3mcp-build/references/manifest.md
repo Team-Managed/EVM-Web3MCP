@@ -57,6 +57,8 @@ A full live example is AgentSwap, published as `agentswap.web3mcp.eth`: [manifes
 - `web3mcp`: `"0.1-evm"`.
 - `chainId`: the chain the contracts are on: 11155111 (Sepolia) or 1. The `web3mcp` plugin reads Sepolia only today; see "Supported chains" in [SKILL.md](../SKILL.md).
 - `name`: the ENS name it's published on, lowercase.
+- `description` (optional): one line about the protocol, up to 200 characters. Agents see it when they search.
+- `keywords` (optional): up to 16 words people might search for it by, such as actions, synonyms and token symbols (`swap`, `exchange`, `usdc`). Each is a lowercase word of 2 to 30 letters or digits.
 - `contracts`: aliases to addresses. Aliases are lowercase identifiers (`^[a-z][a-z0-9_]{0,31}$`). `you` is reserved for the user's wallet. List every token a tool approves or formats, not just the protocol's contracts.
 - `tools`: 1 to 32. Each has a `name` (a unique lowercase identifier), `kind` (`read` or `write`), a `description` (up to 500 characters) and `inputs`.
 

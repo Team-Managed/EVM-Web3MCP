@@ -51,6 +51,9 @@ const manifestSchema = z.strictObject({
   name: z.string().regex(/^[a-z0-9-]+(\.[a-z0-9-]+)+$/, 'expected a normalized ENS name'),
   contracts: z.record(identifier, address),
   tools: z.array(tool).min(1).max(32),
+  // For search (spec section 6): one line about the protocol, and words people might search for it by.
+  description: z.string().min(1).max(200).optional(),
+  keywords: z.array(z.string().regex(/^[a-z0-9]{2,30}$/, 'expected a lowercase word of 2 to 30 letters or digits')).min(1).max(16).optional(),
 });
 
 export type Manifest = z.infer<typeof manifestSchema>;
