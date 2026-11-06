@@ -37,7 +37,7 @@ test('real stdio discovery from unrelated cwd with spaces', async () => {
         "Tools: vault_get_balance, tx_vault_deposit, tx_vault_withdraw. If these don't appear in your tool list, run them with the call tool.",
     }]);
     const { tools } = await client.listTools();
-    assert.deepEqual(tools.map(({ name }) => name).sort(), ['call', 'discover', 'tx_vault_deposit', 'tx_vault_withdraw', 'vault_get_balance']);
+    assert.deepEqual(tools.map(({ name }) => name).sort(), ['call', 'discover', 'status', 'tx_vault_deposit', 'tx_vault_withdraw', 'vault_get_balance']);
     for (const name of ['vault_get_balance', 'tx_vault_deposit', 'tx_vault_withdraw']) {
       assert.equal(tools.find((tool) => tool.name === name)?.annotations?.readOnlyHint, !name.startsWith('tx_'));
     }
