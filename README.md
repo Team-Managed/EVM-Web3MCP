@@ -112,7 +112,7 @@ Or sign with a [Foundry keystore](https://getfoundry.sh/cast/reference/wallet/im
 npx web3mcp-publish index agentswap.web3mcp.eth --account web3mcp
 ```
 
-Set `WEB3MCP_ARKIV_KEY` to an [Arkiv access key](https://hub.arkiv.network/access-keys) to avoid the public endpoint's rate limit. Listings live on Arkiv's Rabdi testnet (chain 7794095), written by `TODO: publisher wallet, after the first listing`.
+Set `WEB3MCP_ARKIV_KEY` to an [Arkiv access key](https://hub.arkiv.network/access-keys) to avoid the public endpoint's rate limit. Listings live on Arkiv's Rabdi testnet (chain 7794095). Our listing of `agentswap.web3mcp.eth` was written by [`0x99230d725DaEFb3571917661755feBB309822ECb`](https://rabdi.explorer.arkiv.network/address/0x99230d725DaEFb3571917661755feBB309822ECb).
 
 ## Status
 

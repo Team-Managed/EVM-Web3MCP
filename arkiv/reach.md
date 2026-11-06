@@ -15,8 +15,8 @@ Yes, on Sepolia and Arkiv's Rabdi testnet:
 
 ## Numbers
 
-- Listed names: TODO, after the first listings are written.
-- Terms per listing: 28 for `agentswap.web3mcp.eth`, the most one Arkiv entity holds alongside our columns.
+- Listed names: 1, `agentswap.web3mcp.eth`, as of 7 November 2026. It's written by [`0x99230d725DaEFb3571917661755feBB309822ECb`](https://rabdi.explorer.arkiv.network/address/0x99230d725DaEFb3571917661755feBB309822ECb).
+- Terms per listing: 24 for `agentswap.web3mcp.eth` today, all taken from its tool names and descriptions. Once its ENS manifest carries keywords, it fills all 28, the most one Arkiv entity holds alongside our columns.
 - Cost of a listing: about 0.00086 tGLM for AgentSwap's at the gas price when we estimated it.
 
 ## After Mumbai
