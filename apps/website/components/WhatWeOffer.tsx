@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { Copy, Check } from "lucide-react";
+import React from "react";
+import { ArrowUpRight } from "lucide-react";
 
 export function WhatWeOffer() {
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-
   const offerings = [
     {
       title: "@web3mcp/evm",
@@ -17,7 +15,8 @@ export function WhatWeOffer() {
         "Pre-flight simulation via eth_simulateV1",
         "Zero-custody wallet write compiler",
       ],
-      command: "npm i @web3mcp/evm",
+      meta: "Node 22+ & TypeScript",
+      href: "https://github.com/Team-Managed/EVM-Web3MCP/tree/main/packages/sdk",
     },
     {
       title: "Claude Code Plugin",
@@ -29,7 +28,8 @@ export function WhatWeOffer() {
         "Pre-execution simulation hook",
         "Natural-language contract queries",
       ],
-      command: "claude plugin install web3mcp@evm-web3mcp",
+      meta: "Claude Marketplace",
+      href: "https://github.com/Team-Managed/EVM-Web3MCP/tree/main/plugins/claude-code",
     },
     {
       title: "Codex & MCP Host",
@@ -41,15 +41,10 @@ export function WhatWeOffer() {
         "Dynamic tool exposure to LLMs",
         "Compatible with Cursor, Codex, and agents",
       ],
-      command: "npx @web3mcp/mcp",
+      meta: "Anthropic MCP Standard",
+      href: "https://github.com/Team-Managed/EVM-Web3MCP/tree/main/packages/mcp",
     },
   ];
-
-  const handleCopy = (cmd: string, idx: number) => {
-    navigator.clipboard.writeText(cmd);
-    setCopiedIndex(idx);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
 
   return (
     <section id="offerings" className="py-24 bg-[#FAF9F6] border-b border-[#E2DFD7]">
@@ -69,7 +64,7 @@ export function WhatWeOffer() {
 
         {/* 3 Sharp Cards in Refined 2-Color Palette */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {offerings.map((card, idx) => (
+          {offerings.map((card) => (
             <div
               key={card.title}
               className="bg-[#FFFFFF] border border-[#E2DFD7] p-7 flex flex-col justify-between shadow-sharp-sand hover:border-[#16181B] transition-all"
@@ -100,21 +95,16 @@ export function WhatWeOffer() {
                 </ul>
               </div>
 
-              {/* Code Command Box */}
-              <div className="bg-[#FAF9F6] border border-[#E2DFD7] p-3 font-mono text-xs text-[#111316] flex items-center justify-between">
-                <code className="truncate max-w-[200px]">{card.command}</code>
-                <button
-                  onClick={() => handleCopy(card.command, idx)}
-                  className="hover:text-[#E57E25] transition-colors ml-2"
-                  title="Copy command"
-                >
-                  {copiedIndex === idx ? (
-                    <Check className="w-3.5 h-3.5 text-[#16181B]" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
-                </button>
-              </div>
+              {/* Action / Meta Box (No CLI) */}
+              <a
+                href={card.href}
+                target="_blank"
+                rel="noreferrer"
+                className="bg-[#FAF9F6] border border-[#E2DFD7] p-3 text-xs font-sans text-[#111316] flex items-center justify-between hover:bg-[#F4EEDF] transition-colors"
+              >
+                <span className="font-semibold">{card.meta}</span>
+                <ArrowUpRight className="w-3.5 h-3.5 text-[#111316]" />
+              </a>
             </div>
           ))}
         </div>

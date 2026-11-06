@@ -79,8 +79,8 @@ export function ChoosePath() {
 
               <div className="space-y-3 mb-8 text-xs font-mono text-[#111316]">
                 <div className="p-3.5 bg-[#FAF9F6] border border-[#E2DFD7]">
-                  <strong className="block mb-1 text-[11px] text-[#5A5D64] uppercase">1. Install Claude Code Plugin</strong>
-                  Run <code>claude plugin install web3mcp@evm-web3mcp</code> in your workspace.
+                  <strong className="block mb-1 text-[11px] text-[#5A5D64] uppercase">1. Install Claude Plugin</strong>
+                  Add the Web3MCP plugin from the Anthropic Claude directory.
                 </div>
                 <div className="p-3.5 bg-[#FAF9F6] border border-[#E2DFD7]">
                   <strong className="block mb-1 text-[11px] text-[#5A5D64] uppercase">2. Natural Language Discovery</strong>
