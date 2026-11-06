@@ -3,6 +3,7 @@
 import React from "react";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { HeroRibbonWave } from "./HeroRibbonWave";
+import { BrandStickerRail } from "./BrandSticker";
 
 /**
  * Centric Handhold-Inspired Hero Section:
@@ -70,6 +71,11 @@ export function Hero() {
             <span>Read Our Documentation</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </a>
+        </div>
+
+        <div className="mt-2">
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[#7A7E87]">Built across the open stack</p>
+          <BrandStickerRail brands={["ethereum", "ens", "arkiv", "claude", "openai", "metamask"]} />
         </div>
 
       </div>
