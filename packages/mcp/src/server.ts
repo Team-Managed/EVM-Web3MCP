@@ -16,6 +16,7 @@ import {
   type ToolDeclaration,
 } from '@web3mcp/evm';
 import { z } from 'zod';
+import { Approvals } from './approvals.js';
 
 // Also blocks path traversal: no slashes, and no empty labels, so no "..".
 const ENS_NAME = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
@@ -27,6 +28,8 @@ export interface ServerOptions {
   account?: string;
   // shortcut: <manifestDir>/<ens-name>.json is checked before ENS so we can develop before names are published; drop once the demo names are live.
   manifestDir?: string;
+  /** Where prepared writes wait for the user's signature. Tests pass one that doesn't open a browser. */
+  approvals?: Approvals;
 }
 
 interface Discovered {
@@ -40,7 +43,7 @@ const text = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t
 const fail = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t }], isError: true });
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-export function createServer({ client, account, manifestDir }: ServerOptions = {}): McpServer {
+export function createServer({ client, account, manifestDir, approvals = new Approvals() }: ServerOptions = {}): McpServer {
   const server = new McpServer({ name: 'web3mcp', version: '0.0.1' });
   const discovered = new Map<string, Discovered>();
   const namespaces = new Map<string, string>();
@@ -79,7 +82,12 @@ export function createServer({ client, account, manifestDir }: ServerOptions = {
         return text(typeof result === 'string' ? result : JSON.stringify(result, null, 2));
       }
       const prepared = await prepareWrite(client, protocol, tool.name, input, await senderAddress(client));
-      return text(review(exposed, prepared, protocol));
+      const { id, url } = await approvals.create(prepared, protocol, exposed);
+      return text(
+        `${review(exposed, prepared, protocol)}\n\n` +
+          `Opened the signing page in the browser: ${url}\n` +
+          `Ask the user to review and sign there in their own wallet, then call status with id "${id}".`,
+      );
     } catch (e) {
       return fail(message(e));
     }
@@ -158,6 +166,38 @@ export function createServer({ client, account, manifestDir }: ServerOptions = {
     async ({ tool, args }) => (discovered.has(tool) ? execute(tool, args) : fail(`Unknown tool ${tool}. Run discover first.`)),
   );
 
+  server.registerTool(
+    'status',
+    {
+      title: 'Check a signing request',
+      description:
+        'Check whether the user signed a write on the signing page, and whether it confirmed on chain. Waits up to 25 seconds for the user to finish.',
+      inputSchema: { id: z.string().describe('The id a write tool returned') },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ id }) => {
+      // A short wait catches the signature without polling, and stays under Codex's 60-second tool limit.
+      const approval = await approvals.wait(id, 25_000);
+      if (!approval) return fail(`No signing request with id ${id}.`);
+      if (approval.status === 'pending') return text('Still waiting for the user to sign on the signing page.');
+      if (approval.status === 'rejected') return text('The user rejected the request in their wallet. Nothing was sent.');
+      if (approval.status === 'failed') return fail(`The transaction failed: ${approval.error ?? 'unknown error'}`);
+
+      // Check the chain ourselves rather than trusting the page's report.
+      const explorer = client?.chain?.blockExplorers?.default.url;
+      const results = await Promise.all(
+        approval.hashes.map(async (hash) => {
+          const receipt = await client?.getTransactionReceipt({ hash }).catch(() => undefined);
+          const state = !receipt ? 'not found on chain yet' : receipt.status === 'success' ? 'confirmed' : 'reverted';
+          return { state, line: `${state}: ${explorer ? `${explorer}/tx/${hash}` : hash}` };
+        }),
+      );
+      const lines = results.map((r) => r.line).join('\n');
+      if (results.some((r) => r.state === 'reverted')) return fail(`The user signed, but a transaction reverted:\n${lines}`);
+      return text(`The user signed. Transactions:\n${lines}`);
+    },
+  );
+
   return server;
 }
 
@@ -172,8 +212,6 @@ function review(exposed: string, prepared: PreparedWrite, protocol: Protocol): s
     `Steps:\n${steps}`,
     `Balance changes for this wallet: ${changes}`,
     `Trust: ${trust}`,
-    // shortcut: nothing is sent yet; hand prepared calls to the local signing page (packages/approve-ui) next.
-    'Not sent: signing in your wallet arrives with the local signing page, the next build step.',
   ].join('\n');
 }
 

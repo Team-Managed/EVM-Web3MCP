@@ -13,6 +13,8 @@ export interface FakeChain {
   addresses?: Record<string, Address>;
   read?: (functionName: string, args: readonly unknown[], address: Address) => unknown;
   simulate?: (calls: { to: Address; data: Hex }[]) => unknown;
+  /** Mined transactions by hash. Missing hashes are not mined yet. */
+  receipts?: Record<string, 'success' | 'reverted'>;
 }
 
 export function fakeClient(chain: FakeChain): ChainClient {
@@ -28,6 +30,11 @@ export function fakeClient(chain: FakeChain): ChainClient {
     readContract: async ({ functionName, args, address }: { functionName: string; args?: unknown[]; address: Address }) =>
       chain.read!(functionName, args ?? [], address),
     simulateCalls: async ({ calls }: { calls: { to: Address; data: Hex }[] }) => chain.simulate!(calls),
+    getTransactionReceipt: async ({ hash }: { hash: Hex }) => {
+      const status = chain.receipts?.[hash];
+      if (!status) throw new Error(`Transaction receipt with hash "${hash}" could not be found.`);
+      return { status, transactionHash: hash };
+    },
   } as unknown as ChainClient;
 }
 

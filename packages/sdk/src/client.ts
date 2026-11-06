@@ -12,4 +12,5 @@ export type ChainClient = Pick<
   | 'getStorageAt'
   | 'readContract'
   | 'simulateCalls'
+  | 'getTransactionReceipt'
 >;

@@ -5,13 +5,16 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { Approvals } from '../dist/approvals.js';
 import { createServer, type ServerOptions } from '../dist/server.js';
 import { fakeClient, published, USDC, vaultChain, vaultManifest } from '../../sdk/test/fake-chain.ts';
+import { send } from './http.ts';
 
 const manifestDir = fileURLToPath(new URL('../../../spec/fixtures/valid/', import.meta.url));
 
 async function connect(options: ServerOptions = { manifestDir }) {
-  const server = createServer(options);
+  // Tests never open a real browser.
+  const server = createServer({ approvals: new Approvals(() => {}), ...options });
   const client = new Client({ name: 'test', version: '0.0.0' });
   const changes: unknown[] = [];
   client.setNotificationHandler(ToolListChangedNotificationSchema, (n) => {
@@ -29,7 +32,7 @@ const call = async (client: Client, name: string, args: Record<string, unknown>)
 
 test('discover registers protocol tools and tells the client', async () => {
   const { client, changes } = await connect();
-  assert.deepEqual(await toolNames(client), ['call', 'discover']);
+  assert.deepEqual(await toolNames(client), ['call', 'discover', 'status']);
 
   const result = await call(client, 'discover', { name: 'vault.web3mcp-demo.eth' });
   const first = result.content[0];
@@ -37,6 +40,7 @@ test('discover registers protocol tools and tells the client', async () => {
   assert.deepEqual(await toolNames(client), [
     'call',
     'discover',
+    'status',
     'tx_vault_deposit',
     'tx_vault_withdraw',
     'vault_get_balance',
@@ -96,9 +100,36 @@ test('discovering a protocol again refreshes its tools and drops pulled ones', a
   await call(client, 'discover', { name: 'vault.web3mcp-demo.eth' });
 
   const { tools } = await client.listTools();
-  assert.deepEqual(tools.map((t) => t.name).sort(), ['call', 'discover', 'tx_vault_deposit', 'vault_get_balance']);
+  assert.deepEqual(tools.map((t) => t.name).sort(), ['call', 'discover', 'status', 'tx_vault_deposit', 'vault_get_balance']);
   assert.match(tools.find((t) => t.name === 'tx_vault_deposit')?.description ?? '', /new description/);
   assert.equal((await call(client, 'call', { tool: 'tx_vault_withdraw', args: { amount: '1' } })).isError, true);
+});
+
+test('a write opens the signing page, and status confirms the transaction on chain', async () => {
+  let opened = '';
+  const chain = vaultChain({
+    read: (fn) => ({ decimals: 6, balanceOf: 10_500000n, allowance: 0n })[fn],
+    simulate: (calls) => ({ results: calls.map(() => ({ status: 'success' })), assetChanges: [] }),
+  });
+  const { client } = await connect({
+    client: fakeClient(chain),
+    account: '0x00000000000000000000000000000000000000aa',
+    approvals: new Approvals((url) => (opened = url)),
+  });
+  await call(client, 'discover', { name: 'vault.web3mcp-demo.eth' });
+
+  const prepared = textOf(await call(client, 'tx_vault_deposit', { amount: '10' }));
+  const id = /id "([0-9a-f]{32})"/.exec(prepared)?.[1] ?? '';
+  assert.ok(opened.endsWith(`/approve/${id}`), prepared);
+
+  // The user signs on the page, which reports the hash; status then checks the chain itself.
+  const hash = `0x${'ab'.repeat(32)}`;
+  const origin = new URL(opened).origin;
+  const posted = await send(`${origin}/api/approvals/${id}`, { method: 'POST', origin, body: { status: 'submitted', hashes: [hash] } });
+  assert.equal(posted.status, 200);
+  assert.match(textOf(await call(client, 'status', { id })), /not found on chain yet/);
+  chain.receipts = { [hash]: 'success' };
+  assert.match(textOf(await call(client, 'status', { id })), new RegExp(`confirmed: ${hash}`));
 });
 
 test('a failed wallet lookup is retried, and reads never wait on it', async () => {
