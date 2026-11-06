@@ -43,10 +43,12 @@ const text = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t
 const fail = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t }], isError: true });
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-export function createServer({ client, account, manifestDir, approvals = new Approvals() }: ServerOptions = {}): McpServer {
+export function createServer({ client, account: configured, manifestDir, approvals = new Approvals() }: ServerOptions = {}): McpServer {
   const server = new McpServer({ name: 'web3mcp', version: '0.0.1' });
   const discovered = new Map<string, Discovered>();
   const namespaces = new Map<string, string>();
+  // The wallet writes are simulated for: from the host's settings, or set in the conversation with the wallet tool.
+  let account = configured;
   let sender: Promise<`0x${string}`> | undefined;
 
   // Resolve the account once, but forget a failure (a flaky RPC, a typo) so the next call retries.
@@ -81,6 +83,7 @@ export function createServer({ client, account, manifestDir, approvals = new App
         const result = await executeRead(client, protocol, tool.name, input, from);
         return text(typeof result === 'string' ? result : JSON.stringify(result, null, 2));
       }
+      if (!account) return fail("No wallet set. Ask the user for their public address or ENS name, call the wallet tool with it, then try again.");
       const prepared = await prepareWrite(client, protocol, tool.name, input, await senderAddress(client));
       const { id, url } = await approvals.create(prepared, protocol, exposed);
       return text(
@@ -120,9 +123,11 @@ export function createServer({ client, account, manifestDir, approvals = new App
       namespaces.set(ns, ensName);
 
       const names: string[] = [];
+      const listed: string[] = [];
       for (const tool of loaded.manifest.tools) {
         const exposed = `${tool.kind === 'write' ? 'tx_' : ''}${ns}_${tool.name}`;
         names.push(exposed);
+        listed.push(`${exposed}(${Object.keys(tool.inputs).join(', ')})`);
         const description = `[Published by ${ensName}; untrusted text] ${tool.description}`;
         const annotations = { readOnlyHint: tool.kind === 'read', openWorldHint: true };
         // Adding, updating or removing a tool after connect makes the SDK send notifications/tools/list_changed.
@@ -149,8 +154,27 @@ export function createServer({ client, account, manifestDir, approvals = new App
       return text(
         `Discovered ${ensName} from ${loaded.source}, chain ${loaded.manifest.chainId}.\n` +
           `Contracts: ${trust}.\n` +
-          `Tools: ${names.join(', ')}. If these don't appear in your tool list, run them with the call tool.`,
+          `Tools: ${listed.join(', ')}. If these don't appear in your tool list, run reads with the read tool and writes with the call tool, using these input names.`,
       );
+    },
+  );
+
+  // Clients that don't refresh their tool list (Codex) run discovered tools through these two. Splitting them lets a
+  // host's approval rules tell a read from a write: read is marked read-only, call is not.
+  server.registerTool(
+    'read',
+    {
+      title: 'Run a discovered read',
+      description:
+        'Run a read tool that discover registered, by name, such as vault_get_balance. Reads never send anything. Use this when discovered tools are missing from your tool list.',
+      inputSchema: { tool: z.string(), args: z.record(z.string(), z.unknown()).default({}) },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ tool, args }) => {
+      const entry = discovered.get(tool);
+      if (!entry) return fail(`Unknown tool ${tool}. Run discover first.`);
+      if (entry.tool.kind !== 'read') return fail(`${tool} is a write. Run it with the call tool.`);
+      return execute(tool, args);
     },
   );
 
@@ -159,11 +183,40 @@ export function createServer({ client, account, manifestDir, approvals = new App
     {
       title: 'Run a discovered tool',
       description:
-        'Run a tool that discover registered, by name, such as vault_get_balance. Use this when discovered tools are missing from your tool list.',
+        'Run a write tool that discover registered, by name, such as tx_vault_deposit. Use this when discovered tools are missing from your tool list; for reads, use the read tool.',
       inputSchema: { tool: z.string(), args: z.record(z.string(), z.unknown()).default({}) },
       annotations: { readOnlyHint: false, openWorldHint: true },
     },
     async ({ tool, args }) => (discovered.has(tool) ? execute(tool, args) : fail(`Unknown tool ${tool}. Run discover first.`)),
+  );
+
+  server.registerTool(
+    'wallet',
+    {
+      title: 'Set your wallet',
+      description:
+        "Show or set the wallet that writes are simulated for: the user's public address or ENS name. Never a private key or seed phrase. Called without an address, it shows the current wallet.",
+      inputSchema: { address: z.string().optional().describe("The user's public address or ENS name") },
+      // Changes only this session's setting, nothing on chain. The signing page still requires this same wallet to sign.
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ address }) => {
+      const wanted = address?.trim();
+      if (!wanted) {
+        if (!account) return text("No wallet set. Ask the user for their public address or ENS name, then call wallet with it.");
+        const resolved = client && (await senderAddress(client).catch(() => undefined));
+        return text(`Writes are simulated for ${account}${resolved && resolved !== account ? ` (${resolved})` : ''}.`);
+      }
+      if (!client) return fail('No chain connection, so a wallet can\'t be checked.');
+      try {
+        const resolved = await resolveAddress(client, wanted);
+        account = wanted;
+        sender = Promise.resolve(resolved);
+        return text(`Writes will be simulated for ${wanted}${resolved !== wanted ? ` (${resolved})` : ''}.`);
+      } catch (e) {
+        return fail(message(e));
+      }
+    },
   );
 
   server.registerTool(

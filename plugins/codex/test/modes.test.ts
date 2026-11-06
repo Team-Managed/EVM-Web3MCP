@@ -73,7 +73,7 @@ test('live stdio uses supplied RPC and never falls back to an existing fixture',
     const result = await client.callTool({ name: 'discover', arguments: { name: 'vault.web3mcp-demo.eth' } });
     assert.equal(result.isError, true);
     assert.ok(methods.includes('eth_call'), 'ENS must query the controlled RPC');
-    assert.deepEqual((await client.listTools()).tools.map((tool) => tool.name).sort(), ['call', 'discover', 'status']);
+    assert.deepEqual((await client.listTools()).tools.map((tool) => tool.name).sort(), ['call', 'discover', 'read', 'status', 'wallet']);
   } finally {
     await client.close();
     await new Promise<void>((resolve, reject) => rpc.close((error) => error ? reject(error) : resolve()));

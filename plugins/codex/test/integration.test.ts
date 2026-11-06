@@ -35,10 +35,10 @@ test('real stdio discovery from unrelated cwd with spaces', async () => {
       type: 'text',
       text: 'Discovered vault.web3mcp-demo.eth from a local manifest file, chain 11155111.\n' +
         'Contracts: not checked on chain.\n' +
-        "Tools: vault_get_balance, tx_vault_deposit, tx_vault_withdraw. If these don't appear in your tool list, run them with the call tool.",
+        "Tools: vault_get_balance(owner), tx_vault_deposit(amount), tx_vault_withdraw(amount). If these don't appear in your tool list, run reads with the read tool and writes with the call tool, using these input names.",
     }]);
     const { tools } = await client.listTools();
-    assert.deepEqual(tools.map(({ name }) => name).sort(), ['call', 'discover', 'status', 'tx_vault_deposit', 'tx_vault_withdraw', 'vault_get_balance']);
+    assert.deepEqual(tools.map(({ name }) => name).sort(), ['call', 'discover', 'read', 'status', 'tx_vault_deposit', 'tx_vault_withdraw', 'vault_get_balance', 'wallet']);
     assert.equal(tools.find((tool) => tool.name === 'status')?.annotations?.readOnlyHint, true);
     for (const name of ['vault_get_balance', 'tx_vault_deposit', 'tx_vault_withdraw']) {
       assert.equal(tools.find((tool) => tool.name === name)?.annotations?.readOnlyHint, !name.startsWith('tx_'));
