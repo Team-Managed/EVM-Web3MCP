@@ -57,7 +57,9 @@ export function HeroRibbonWave({
 
     let animationFrameId: number;
     const startTime = performance.now();
-    const effectiveSpeed = isStatic ? 0 : speed;
+    // Visitors who ask the OS to reduce motion get one still frame.
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const effectiveSpeed = isStatic || reduceMotion ? 0 : speed;
     const baseTimeOffset = timeOffset ?? (isStatic ? 1.0 : 0);
 
     // 4x4 Bayer Dithering Matrix (standard threshold distribution)
@@ -297,9 +299,18 @@ export function HeroRibbonWave({
       animationFrameId = requestAnimationFrame(loop);
     };
 
-    animationFrameId = requestAnimationFrame(loop);
+    // Each frame redraws thousands of characters, so only animate while the canvas is on screen.
+    let onScreen = false;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting === onScreen) return;
+      onScreen = entry.isIntersecting;
+      if (onScreen) animationFrameId = requestAnimationFrame(loop);
+      else cancelAnimationFrame(animationFrameId);
+    });
+    observer.observe(canvas);
 
     return () => {
+      observer.disconnect();
       window.removeEventListener("resize", handleResize);
       cancelAnimationFrame(animationFrameId);
     };
