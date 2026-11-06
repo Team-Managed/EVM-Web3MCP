@@ -44,12 +44,12 @@ interface IERC20 {
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 }
 
-/// Swaps ETH and USDC on a Uniswap v4 pool for whoever calls it, and refuses any swap that pays
-/// more than 3% less than Chainlink's ETH/USD price. It holds no funds: each swap pays the pool
-/// and sends the output to the recipient in the same transaction.
+/// Swaps ETH and USDC on a Uniswap v4 pool for whoever calls it. A swap is refused when it pays less
+/// than the caller's own minimum, or more than 3% less than Chainlink's ETH/USD price. It holds no
+/// funds: each swap pays the pool and sends the output to the recipient in the same transaction.
 contract AgentSwap {
     uint256 public constant MAX_SHORTFALL_BPS = 300;
-    uint256 public constant MAX_PRICE_AGE = 3 hours;
+    uint256 public constant MAX_PRICE_AGE = 75 minutes; // Sepolia's ETH/USD feed updates hourly
     uint24 public constant FEE = 3000;
     int24 public constant TICK_SPACING = 60;
     uint160 private constant MIN_SQRT_PRICE = 4295128739;
@@ -87,20 +87,20 @@ contract AgentSwap {
         (ethOut,) = quoter.quoteExactInputSingle(QuoteExactSingleParams(poolKey(), false, usdcIn, ""));
     }
 
-    /// Swap the ETH sent for USDC, paid to `recipient`.
-    function swapEthToUsdc(address recipient) external payable returns (uint256 usdcOut) {
-        return swap(true, msg.value, recipient);
+    /// Swap the ETH sent for at least `minUsdcOut` USDC, paid to `recipient`.
+    function swapEthToUsdc(uint256 minUsdcOut, address recipient) external payable returns (uint256 usdcOut) {
+        return swap(true, msg.value, minUsdcOut, recipient);
     }
 
-    /// Swap `usdcIn` of the caller's USDC (approve this contract first) for ETH, paid to `recipient`.
-    function swapUsdcToEth(uint256 usdcIn, address recipient) external returns (uint256 ethOut) {
-        return swap(false, usdcIn, recipient);
+    /// Swap `usdcIn` of the caller's USDC (approve this contract first) for at least `minEthOut` ETH, paid to `recipient`.
+    function swapUsdcToEth(uint256 usdcIn, uint256 minEthOut, address recipient) external returns (uint256 ethOut) {
+        return swap(false, usdcIn, minEthOut, recipient);
     }
 
     function unlockCallback(bytes calldata data) external returns (bytes memory) {
         require(msg.sender == address(poolManager), "AgentSwap: only the PoolManager");
-        (address payer, bool ethToUsdc, uint256 amountIn, address recipient) =
-            abi.decode(data, (address, bool, uint256, address));
+        (address payer, bool ethToUsdc, uint256 amountIn, uint256 minOut, address recipient) =
+            abi.decode(data, (address, bool, uint256, uint256, address));
 
         int256 delta = poolManager.swap(
             poolKey(),
@@ -113,6 +113,8 @@ contract AgentSwap {
         (int128 paid, int128 received) = ethToUsdc ? (eth, usd) : (usd, eth);
         require(uint256(int256(-paid)) == amountIn, "AgentSwap: not enough liquidity in the pool");
         uint256 amountOut = uint256(int256(received));
+        // The caller's minimum stops anyone moving the price between the quote and the swap.
+        require(amountOut >= minOut, "AgentSwap: the price moved below your minimum");
 
         uint256 price = ethPrice();
         uint256 fair = ethToUsdc ? amountIn * price / 1e20 : amountIn * 1e20 / price;
@@ -137,9 +139,9 @@ contract AgentSwap {
         return PoolKey(address(0), usdc, FEE, TICK_SPACING, address(0));
     }
 
-    function swap(bool ethToUsdc, uint256 amountIn, address recipient) private returns (uint256) {
+    function swap(bool ethToUsdc, uint256 amountIn, uint256 minOut, address recipient) private returns (uint256) {
         require(amountIn > 0 && amountIn <= type(uint128).max, "AgentSwap: amount must be above zero");
         require(recipient != address(0), "AgentSwap: no recipient");
-        return abi.decode(poolManager.unlock(abi.encode(msg.sender, ethToUsdc, amountIn, recipient)), (uint256));
+        return abi.decode(poolManager.unlock(abi.encode(msg.sender, ethToUsdc, amountIn, minOut, recipient)), (uint256));
     }
 }

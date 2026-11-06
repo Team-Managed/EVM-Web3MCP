@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {AgentSwap, IPoolManager, IV4Quoter, IPriceFeed} from "../src/AgentSwap.sol";
 
-// Runs against a Sepolia fork (eth_rpc_url in foundry.toml): the real PoolManager, Quoter and ETH/USDC pool.
+// Runs against a Sepolia fork (see the README): the real PoolManager, Quoter and ETH/USDC pool.
 // The price feed is a stub, so each test sets a Chainlink price relative to the pool's live quote.
 
 contract StubFeed is IPriceFeed {
@@ -30,6 +30,7 @@ contract AgentSwapTest {
     IV4Quoter constant QUOTER = IV4Quoter(0x61B3f2011A92d183C7dbaDBdA940a7555Ccf9227);
     address constant USDC = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
     address constant RIYA = address(0xA11CE);
+    string constant BELOW_CHAINLINK = "AgentSwap: pool price is more than 3% worse than Chainlink's";
 
     StubFeed feed;
     AgentSwap swapper;
@@ -41,50 +42,80 @@ contract AgentSwapTest {
         swapper = new AgentSwap(address(this), POOL_MANAGER, QUOTER, feed, USDC);
     }
 
-    // Chainlink price (8 decimals) at which `ethIn` for `usdcOut` is exactly fair, scaled by `percent`.
-    function setPrice(uint256 ethIn, uint256 usdcOut, uint256 percent) internal {
-        feed.set(int256(usdcOut * 1e20 / ethIn * percent / 100), block.timestamp);
+    // Chainlink price (8 decimals) at which `ethAmount` for `usdcAmount` is exactly fair, scaled by `percent`.
+    function setPrice(uint256 ethAmount, uint256 usdcAmount, uint256 percent) internal {
+        feed.set(int256(usdcAmount * 1e20 / ethAmount * percent / 100), block.timestamp);
+    }
+
+    // Some USDC for this contract, bought at a fair price, plus the quote for selling `usdcIn` of it.
+    function buyUsdc() internal returns (uint256 usdcIn, uint256 quoted) {
+        setPrice(0.01 ether, swapper.quoteEthToUsdc(0.01 ether), 100);
+        usdcIn = swapper.swapEthToUsdc{value: 0.01 ether}(0, address(this)) / 2;
+        quoted = swapper.quoteUsdcToEth(uint128(usdcIn));
+        IERC20Full(USDC).approve(address(swapper), usdcIn);
     }
 
     function test_swapsEthForUsdcAtTheQuotedAmount() public {
         uint256 quoted = swapper.quoteEthToUsdc(0.001 ether);
         setPrice(0.001 ether, quoted, 100);
 
-        uint256 out = swapper.swapEthToUsdc{value: 0.001 ether}(RIYA);
+        uint256 out = swapper.swapEthToUsdc{value: 0.001 ether}(quoted, RIYA);
 
         require(out == quoted && IERC20Full(USDC).balanceOf(RIYA) == quoted, "recipient got the quote");
         require(address(swapper).balance == 0 && IERC20Full(USDC).balanceOf(address(swapper)) == 0, "holds nothing");
     }
 
     function test_swapsUsdcForEth() public {
-        setPrice(0.01 ether, swapper.quoteEthToUsdc(0.01 ether), 100);
-        uint256 usdcIn = swapper.swapEthToUsdc{value: 0.01 ether}(address(this)) / 2;
-        uint256 quoted = swapper.quoteUsdcToEth(uint128(usdcIn));
+        (uint256 usdcIn, uint256 quoted) = buyUsdc();
         setPrice(quoted, usdcIn, 100);
-        IERC20Full(USDC).approve(address(swapper), usdcIn);
         uint256 before = RIYA.balance;
 
-        uint256 out = swapper.swapUsdcToEth(usdcIn, RIYA);
+        uint256 out = swapper.swapUsdcToEth(usdcIn, quoted, RIYA);
 
         require(out == quoted && RIYA.balance - before == quoted, "recipient got the quote");
     }
 
-    function test_refusesAPriceMoreThan3PercentBelowChainlink() public {
+    function test_refusesLessThanTheCallersMinimum() public {
+        uint256 quoted = swapper.quoteEthToUsdc(0.001 ether);
+        setPrice(0.001 ether, quoted, 100);
+
+        try swapper.swapEthToUsdc{value: 0.001 ether}(quoted + 1, RIYA) {
+            revert("should refuse");
+        } catch Error(string memory reason) {
+            require(eq(reason, "AgentSwap: the price moved below your minimum"), reason);
+        }
+    }
+
+    function test_refusesEthToUsdcMoreThan3PercentBelowChainlink() public {
         uint256 quoted = swapper.quoteEthToUsdc(0.001 ether);
         setPrice(0.001 ether, quoted, 104);
 
-        try swapper.swapEthToUsdc{value: 0.001 ether}(RIYA) {
+        try swapper.swapEthToUsdc{value: 0.001 ether}(0, RIYA) {
             revert("should refuse");
         } catch Error(string memory reason) {
-            require(eq(reason, "AgentSwap: pool price is more than 3% worse than Chainlink's"), reason);
+            require(eq(reason, BELOW_CHAINLINK), reason);
         }
         setPrice(0.001 ether, quoted, 102);
-        swapper.swapEthToUsdc{value: 0.001 ether}(RIYA);
+        swapper.swapEthToUsdc{value: 0.001 ether}(0, RIYA);
     }
 
-    function test_refusesAStalePrice() public {
-        feed.set(2000e8, block.timestamp - 4 hours);
-        try swapper.swapEthToUsdc{value: 0.001 ether}(RIYA) {
+    function test_refusesUsdcToEthMoreThan3PercentBelowChainlink() public {
+        (uint256 usdcIn, uint256 quoted) = buyUsdc();
+        // A lower ETH price means each USDC should buy more ETH, so the pool's payout looks worse.
+        setPrice(quoted, usdcIn * 100 / 104, 100);
+
+        try swapper.swapUsdcToEth(usdcIn, 0, RIYA) {
+            revert("should refuse");
+        } catch Error(string memory reason) {
+            require(eq(reason, BELOW_CHAINLINK), reason);
+        }
+        setPrice(quoted, usdcIn * 100 / 102, 100);
+        swapper.swapUsdcToEth(usdcIn, 0, RIYA);
+    }
+
+    function test_refusesAPriceOlderThan75Minutes() public {
+        feed.set(2000e8, block.timestamp - 80 minutes);
+        try swapper.swapEthToUsdc{value: 0.001 ether}(0, RIYA) {
             revert("should refuse");
         } catch Error(string memory reason) {
             require(eq(reason, "AgentSwap: Chainlink price is stale"), reason);
@@ -92,7 +123,7 @@ contract AgentSwapTest {
     }
 
     function test_onlyThePoolManagerCanCallBack() public {
-        try swapper.unlockCallback(abi.encode(address(this), true, 1, RIYA)) {
+        try swapper.unlockCallback(abi.encode(address(this), true, 1, 0, RIYA)) {
             revert("should refuse");
         } catch Error(string memory reason) {
             require(eq(reason, "AgentSwap: only the PoolManager"), reason);
