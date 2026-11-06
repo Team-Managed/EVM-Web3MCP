@@ -35,7 +35,7 @@ The exact schema is `packages/sdk/src/manifest.ts`. Valid and invalid examples a
 
 ### Tools
 
-- **Read tool** (`"kind": "read"`): one `call` to a `view` or `pure` function.
+- **Read tool** (`"kind": "read"`): one `call` to a `view` or `pure` function. An optional `output` (`{ "decimalsFrom": "usdc", "symbol": "USDC" }`) formats a numeric result with that contract's `decimals()`, so agents see `10.5 USDC` instead of `10500000`.
 - **Write tool** (`"kind": "write"`): 1 to 4 `steps`. Each step is either a `call` to a state-changing function, or an `approve` of an ERC-20 `token` to a `spender`.
 
 A `call` names a contract alias, a human-readable function signature (`function deposit(uint256 amount)`), and one argument binding per function input. An optional `value` is allowed only for `payable` functions.
@@ -80,7 +80,7 @@ Discovered tools are named `<namespace>_<tool>` for reads and `tx_<namespace>_<t
 
 ## 6. Search (Arkiv)
 
-Agents find protocols by what they can do, through an index on Arkiv:
+Agents find protocols by what they can do, through an index on Arkiv. Search is optional and never blocks discovery: when the user names an ENS name, the host discovers it directly. Search only helps when the user describes a goal without a name, and a host without search asks the user for the name instead.
 
 - Publishing writes one Arkiv entity per name, owned by the publisher's wallet: the ENS name, `chainId`, the manifest digest, and each tool's name and description.
 - Entities expire unless the publisher refreshes them, so abandoned protocols drop out of search. They stay usable by name.
