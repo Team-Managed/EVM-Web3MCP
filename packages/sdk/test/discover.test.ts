@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { keccak256, toBytes } from 'viem';
-import { discover, DiscoveryError } from '../dist/index.js';
+import { assertUnchanged, discover, DiscoveryError } from '../dist/index.js';
 import { codeWith, fakeClient, published, USDC, VAULT, vaultChain, vaultManifest } from './fake-chain.ts';
 
 test('discovers a published protocol and sets trust per contract', async () => {
@@ -61,6 +61,16 @@ test('rejects an address with no contract', async () => {
   const chain = vaultChain();
   delete chain.code![USDC];
   await assert.rejects(discover(fakeClient(chain), 'vault.web3mcp-demo.eth'), /no contract/);
+});
+
+test('a contract whose code changed after discovery is caught before a write', async () => {
+  const chain = vaultChain();
+  const client = fakeClient(chain);
+  const protocol = await discover(client, 'vault.web3mcp-demo.eth');
+  await assertUnchanged(client, protocol);
+  // A redeploy or proxy upgrade changes the code.
+  chain.code![VAULT] = `${chain.code![VAULT]}00`;
+  await assert.rejects(assertUnchanged(client, protocol), /vault at .* changed since discovery/);
 });
 
 test('rejects a manifest for another chain', async () => {

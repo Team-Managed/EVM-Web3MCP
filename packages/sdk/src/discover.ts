@@ -86,12 +86,14 @@ export async function verifyManifest(client: ChainClient, manifest: Manifest, na
 
 /** Throw if any contract's code changed since discovery, such as a proxy upgrade. */
 export async function assertUnchanged(client: ChainClient, protocol: Protocol): Promise<void> {
-  for (const [alias, info] of Object.entries(protocol.contracts)) {
-    const { fingerprint } = await readCode(client, info.address);
-    if (fingerprint !== info.fingerprint) {
-      throw new DiscoveryError(`${alias} at ${info.address} changed since discovery. Run discover again and re-review.`);
-    }
-  }
+  await Promise.all(
+    Object.entries(protocol.contracts).map(async ([alias, info]) => {
+      const { fingerprint } = await readCode(client, info.address);
+      if (fingerprint !== info.fingerprint) {
+        throw new DiscoveryError(`${alias} at ${info.address} changed since discovery. Run discover again and re-review.`);
+      }
+    }),
+  );
 }
 
 // Lowercase hex of the contract's code plus its proxy implementation's code, so selector checks see both.
