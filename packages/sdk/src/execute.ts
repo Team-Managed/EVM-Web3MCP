@@ -27,6 +27,8 @@ export interface PreparedCall {
   to: Address;
   data: Hex;
   value?: bigint;
+  /** Gas limit to suggest to the wallet, for calls near the per-transaction cap. */
+  gas?: bigint;
   /** Readable form, such as `usdc.approve(vault, 10000000)`. */
   description: string;
 }

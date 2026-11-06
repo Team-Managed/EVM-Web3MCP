@@ -13,7 +13,7 @@ export interface Approval {
   protocol: string;
   tool: string;
   account: `0x${string}`;
-  calls: { to: `0x${string}`; data: `0x${string}`; value?: string; description: string }[];
+  calls: { to: `0x${string}`; data: `0x${string}`; value?: string; gas?: string; description: string }[];
   assetChanges: PreparedWrite['assetChanges'];
   trust: { alias: string; address: string; trust: string }[];
   status: ApprovalStatus;
@@ -56,7 +56,13 @@ export class Approvals {
       protocol: protocol.name,
       tool,
       account: prepared.account,
-      calls: prepared.calls.map((c) => ({ to: c.to, data: c.data, value: c.value?.toString(), description: c.description })),
+      calls: prepared.calls.map((c) => ({
+        to: c.to,
+        data: c.data,
+        value: c.value?.toString(),
+        gas: c.gas?.toString(),
+        description: c.description,
+      })),
       assetChanges: prepared.assetChanges,
       trust: Object.entries(protocol.contracts).map(([alias, c]) => ({ alias, address: c.address, trust: c.trust })),
       status: 'pending',

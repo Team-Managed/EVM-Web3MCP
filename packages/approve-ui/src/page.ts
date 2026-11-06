@@ -13,7 +13,7 @@ interface Approval {
   protocol: string;
   tool: string;
   account: Address;
-  calls: { to: Address; data: Hex; value?: string; description: string }[];
+  calls: { to: Address; data: Hex; value?: string; gas?: string; description: string }[];
   assetChanges: { token: Address; symbol?: string; change: string }[];
   trust: { alias: string; address: Address; trust: string }[];
   status: 'pending' | 'submitted' | 'rejected' | 'failed';
@@ -78,15 +78,27 @@ async function sign() {
   const wallet = createWalletClient({ account: connected, chain, transport: custom(window.ethereum) });
   const reader = createPublicClient({ chain, transport: custom(window.ethereum) });
   if ((await wallet.getChainId()) !== chain.id) await wallet.switchChain({ id: chain.id });
-  const calls = approval.calls.map((c) => ({ to: c.to, data: c.data, value: c.value ? BigInt(c.value) : undefined }));
+  const calls = approval.calls.map((c) => ({
+    to: c.to,
+    data: c.data,
+    value: c.value ? BigInt(c.value) : undefined,
+    gas: c.gas ? BigInt(c.gas) : undefined,
+  }));
 
-  // Ask for one prompt for all steps (EIP-5792). Only a wallet that refuses the request itself gets the fallback,
-  // so a batch that was sent is never sent twice.
+  // One prompt for all steps (EIP-5792), but only when the wallet can already batch: asking a plain MetaMask
+  // account would push it to upgrade to a smart account first. Only a wallet that refuses the request itself
+  // gets the fallback, so a batch that was sent is never sent twice.
+  const atomic = await wallet
+    .getCapabilities({ chainId: chain.id })
+    .then((c) => c.atomic?.status)
+    .catch(() => undefined);
   let batch: string | undefined;
-  try {
-    batch = (await wallet.sendCalls({ calls })).id;
-  } catch (e) {
-    if (isRejection(e)) throw e;
+  if (calls.length > 1 && atomic === 'supported') {
+    try {
+      batch = (await wallet.sendCalls({ calls: calls.map(({ gas, ...call }) => call) })).id;
+    } catch (e) {
+      if (isRejection(e)) throw e;
+    }
   }
   const hashes: Hex[] = [];
   if (batch) {
