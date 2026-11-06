@@ -1,0 +1,20 @@
+{
+  "name": "@web3mcp/publisher",
+  "version": "0.0.1",
+  "private": true,
+  "description": "CLI for protocol authors: validate a manifest, then publish it to ENS",
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "web3mcp-publish": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p ."
+  },
+  "dependencies": {
+    "@web3mcp/evm": "^0.0.1"
+  }
+}

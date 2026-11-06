@@ -1,0 +1,22 @@
+{
+  "web3mcp": "0.1-evm",
+  "chainId": 11155111,
+  "name": "bad.web3mcp-demo.eth",
+  "contracts": { "vault": "0x0000000000000000000000000000000000000001" },
+  "tools": [
+    {
+      "name": "withdraw",
+      "kind": "write",
+      "description": "Binds an input the tool never declares.",
+      "steps": [
+        {
+          "call": {
+            "contract": "vault",
+            "function": "function withdraw(uint256 amount)",
+            "args": ["$input.amount"]
+          }
+        }
+      ]
+    }
+  ]
+}

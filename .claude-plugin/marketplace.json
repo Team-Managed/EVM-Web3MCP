@@ -1,0 +1,14 @@
+{
+  "name": "evm-web3mcp",
+  "description": "Web3MCP for EVM chains",
+  "owner": {
+    "name": "Team-Managed"
+  },
+  "plugins": [
+    {
+      "name": "web3mcp",
+      "source": "./plugins/claude-code",
+      "description": "Use any EVM contract that publishes Web3MCP tools under its ENS name. Writes are simulated and signed in your own wallet."
+    }
+  ]
+}

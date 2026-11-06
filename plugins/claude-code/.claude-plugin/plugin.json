@@ -1,0 +1,8 @@
+{
+  "name": "web3mcp",
+  "version": "0.0.1",
+  "author": {
+    "name": "Team-Managed"
+  },
+  "description": "Use any EVM contract that publishes Web3MCP tools under its ENS name. Writes are simulated and signed in your own wallet."
+}

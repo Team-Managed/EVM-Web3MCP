@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "web3mcp": {
+      "command": "npx",
+      "args": ["-y", "@web3mcp/mcp@0.0.1"]
+    }
+  }
+}

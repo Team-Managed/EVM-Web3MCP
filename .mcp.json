@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "web3mcp": {
+      "command": "node",
+      "args": ["packages/mcp/dist/index.js"],
+      "env": {
+        "WEB3MCP_MANIFEST_DIR": "spec/fixtures/valid"
+      }
+    }
+  }
+}

@@ -1,0 +1,13 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+coverage/
+.next/
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+*.keypair.json
+CLAUDE.local.md

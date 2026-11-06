@@ -1,0 +1,29 @@
+{
+  "name": "evm-web3mcp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Web3MCP for EVM chains: contracts publish AI-agent tools under their ENS name",
+  "type": "module",
+  "workspaces": [
+    "packages/sdk",
+    "packages/mcp",
+    "apps/publisher"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "npm run build && npm run typecheck && npm test --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Team-Managed/EVM-Web3MCP.git"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.3"
+  }
+}

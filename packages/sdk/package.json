@@ -1,0 +1,36 @@
+{
+  "name": "@web3mcp/evm",
+  "version": "0.0.1",
+  "description": "Discover and validate Web3MCP tools published by EVM contracts under their ENS name",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Team-Managed/EVM-Web3MCP.git",
+    "directory": "packages/sdk"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "test": "node --test \"test/*.test.ts\""
+  },
+  "dependencies": {
+    "viem": "^2.57.16",
+    "zod": "^4.6.7"
+  }
+}

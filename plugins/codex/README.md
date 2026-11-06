@@ -1,0 +1,20 @@
+# Web3MCP for Codex
+
+Add the MCP server:
+
+```bash
+codex mcp add web3mcp -- npx -y @web3mcp/mcp@0.0.1
+```
+
+Then, in `~/.codex/config.toml`, make Codex ask before anything that isn't a read. Discovered read tools are marked read-only, so they run without a prompt:
+
+```toml
+[mcp_servers.web3mcp]
+default_tools_approval_mode = "writes"
+```
+
+Install the skill, which uses the same `SKILL.md` format as the Claude Code plugin: copy `plugins/claude-code/skills/web3mcp` into the folder Codex loads skills from. In a repository that's `.agents/skills/`, where Solana-Web3MCP keeps its Codex skills.
+
+Codex may not refresh its tool list when `discover` adds tools. If not, the skill tells it to run them through the `call` tool.
+
+To do: package this as a Codex plugin from the `/plugins` marketplace once its manifest format is confirmed.

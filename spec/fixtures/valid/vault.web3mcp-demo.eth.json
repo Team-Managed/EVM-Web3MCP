@@ -1,0 +1,59 @@
+{
+  "web3mcp": "0.1-evm",
+  "chainId": 11155111,
+  "name": "vault.web3mcp-demo.eth",
+  "contracts": {
+    "vault": "0x0000000000000000000000000000000000000001",
+    "usdc": "0x0000000000000000000000000000000000000002"
+  },
+  "tools": [
+    {
+      "name": "get_balance",
+      "kind": "read",
+      "description": "Read how much USDC an owner has deposited in the vault.",
+      "inputs": {
+        "owner": { "type": "address", "description": "Wallet address or ENS name" }
+      },
+      "call": {
+        "contract": "vault",
+        "function": "function balanceOf(address owner) view returns (uint256)",
+        "args": ["$input.owner"]
+      }
+    },
+    {
+      "name": "deposit",
+      "kind": "write",
+      "description": "Deposit USDC into the vault.",
+      "inputs": {
+        "amount": { "type": "amount", "token": "usdc", "description": "USDC amount, such as 10.5" }
+      },
+      "steps": [
+        { "approve": { "token": "usdc", "spender": "vault", "amount": "$input.amount" } },
+        {
+          "call": {
+            "contract": "vault",
+            "function": "function deposit(uint256 amount)",
+            "args": ["$input.amount"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "withdraw",
+      "kind": "write",
+      "description": "Withdraw USDC from the vault.",
+      "inputs": {
+        "amount": { "type": "amount", "token": "usdc", "description": "USDC amount, such as 10.5" }
+      },
+      "steps": [
+        {
+          "call": {
+            "contract": "vault",
+            "function": "function withdraw(uint256 amount)",
+            "args": ["$input.amount"]
+          }
+        }
+      ]
+    }
+  ]
+}
