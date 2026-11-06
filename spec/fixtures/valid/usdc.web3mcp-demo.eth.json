@@ -1,0 +1,42 @@
+{
+  "web3mcp": "0.1-evm",
+  "chainId": 11155111,
+  "name": "usdc.web3mcp-demo.eth",
+  "contracts": {
+    "usdc": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+  },
+  "tools": [
+    {
+      "name": "balance",
+      "kind": "read",
+      "description": "USDC balance of a wallet on Sepolia (Circle's test USDC).",
+      "inputs": {
+        "owner": { "type": "address", "description": "Wallet address or ENS name" }
+      },
+      "call": {
+        "contract": "usdc",
+        "function": "function balanceOf(address owner) view returns (uint256)",
+        "args": ["$input.owner"]
+      },
+      "output": { "decimalsFrom": "usdc", "symbol": "USDC" }
+    },
+    {
+      "name": "approve",
+      "kind": "write",
+      "description": "Let a spender use some of your USDC. Moves no tokens, so it's a safe way to try signing.",
+      "inputs": {
+        "spender": { "type": "address", "description": "Address or ENS name allowed to spend" },
+        "amount": { "type": "amount", "token": "usdc", "description": "USDC amount, such as 1.5" }
+      },
+      "steps": [
+        {
+          "call": {
+            "contract": "usdc",
+            "function": "function approve(address spender, uint256 amount) returns (bool)",
+            "args": ["$input.spender", "$input.amount"]
+          }
+        }
+      ]
+    }
+  ]
+}

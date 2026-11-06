@@ -4,7 +4,9 @@
       "command": "node",
       "args": ["packages/mcp/dist/index.js"],
       "env": {
-        "WEB3MCP_MANIFEST_DIR": "spec/fixtures/valid"
+        "WEB3MCP_MANIFEST_DIR": "spec/fixtures/valid",
+        "WEB3MCP_ACCOUNT": "${WEB3MCP_ACCOUNT:-}",
+        "WEB3MCP_RPC_URL": "${WEB3MCP_RPC_URL:-}"
       }
     }
   }

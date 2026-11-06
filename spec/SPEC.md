@@ -66,7 +66,11 @@ Planned: `abiEncode(...)` for nested calldata such as Uniswap's Universal Router
 
 ## 4. Writes
 
-The host builds every step, simulates them together (`eth_simulateV1`), and shows the user the decoded calls and exact balance changes. It re-checks code fingerprints just before sending, then asks the user's wallet to sign, batched with EIP-5792 `wallet_sendCalls` where supported. The model never holds a key.
+The host builds every step, skips approvals the wallet already gave, re-checks code fingerprints since discovery, and simulates the steps together (`eth_simulateV1`) two blocks back, so load-balanced public RPCs agree on the block. The model never holds a key.
+
+The MCP host then opens a local signing page, `http://127.0.0.1:<port>/approve/<id>`, showing the trust levels, each step and the simulated balance changes. The user connects their own wallet, which must be the account the write was simulated for, and signs. The page asks for one prompt with EIP-5792 `wallet_sendCalls`; a wallet that can't batch gets one transaction at a time, each confirmed before the next. The page reports the transaction hashes, and the host re-checks them on chain.
+
+The signing page answers only requests addressed to its own `127.0.0.1` host and port, accepts results only from its own origin, and uses an unguessable id per request.
 
 ## 5. Exposure over MCP
 
@@ -74,6 +78,7 @@ The generic MCP server starts with these tools:
 
 - `discover(name)` loads a protocol and registers its tools, then sends `notifications/tools/list_changed`.
 - `call(tool, args)` runs a discovered tool, for clients that do not refresh their tool list.
+- `status(id)` reports whether the user signed a write on the signing page and whether it confirmed on chain, waiting up to 25 seconds.
 - `search(query)` (planned) finds published names by what they can do, through the Arkiv index (section 6).
 
 Discovered tools are named `<namespace>_<tool>` for reads and `tx_<namespace>_<tool>` for writes. The namespace is the first label of the ENS name. Reads carry `readOnlyHint: true`. Every description is prefixed with its publisher, because it is untrusted text.
