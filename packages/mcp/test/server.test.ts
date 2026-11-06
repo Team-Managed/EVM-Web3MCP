@@ -6,7 +6,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { createServer, type ServerOptions } from '../dist/server.js';
-import { fakeClient, USDC, vaultChain } from '../../sdk/test/fake-chain.ts';
+import { fakeClient, published, USDC, vaultChain, vaultManifest } from '../../sdk/test/fake-chain.ts';
 
 const manifestDir = fileURLToPath(new URL('../../../spec/fixtures/valid/', import.meta.url));
 
@@ -81,6 +81,24 @@ test('tools discovered from ENS run reads and prepare writes', async () => {
   assert.match(review, /1\. usdc\.approve\(vault, 10000000\)/);
   assert.match(review, /2\. vault\.deposit\(10000000\)/);
   assert.match(review, /USDC -10/);
+});
+
+test('discovering a protocol again refreshes its tools and drops pulled ones', async () => {
+  const chain = vaultChain();
+  const { client } = await connect({ client: fakeClient(chain) });
+  await call(client, 'discover', { name: 'vault.web3mcp-demo.eth' });
+
+  // The publisher pulls withdraw and rewords deposit.
+  const updated = structuredClone(vaultManifest);
+  updated.tools = updated.tools.filter((t: { name: string }) => t.name !== 'withdraw');
+  updated.tools.find((t: { name: string }) => t.name === 'deposit').description = 'Deposit USDC. Now with a new description.';
+  chain.texts!['vault.web3mcp-demo.eth'] = published(updated);
+  await call(client, 'discover', { name: 'vault.web3mcp-demo.eth' });
+
+  const { tools } = await client.listTools();
+  assert.deepEqual(tools.map((t) => t.name).sort(), ['call', 'discover', 'tx_vault_deposit', 'vault_get_balance']);
+  assert.match(tools.find((t) => t.name === 'tx_vault_deposit')?.description ?? '', /new description/);
+  assert.equal((await call(client, 'call', { tool: 'tx_vault_withdraw', args: { amount: '1' } })).isError, true);
 });
 
 test('a failed wallet lookup is retried, and reads never wait on it', async () => {

@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer, type RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import {
   discover as discoverFromEns,
@@ -30,8 +30,10 @@ export interface ServerOptions {
 }
 
 interface Discovered {
+  ensName: string;
   tool: ToolDeclaration;
   protocol?: Protocol;
+  registered: RegisteredTool;
 }
 
 const text = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t }] });
@@ -113,19 +115,24 @@ export function createServer({ client, account, manifestDir }: ServerOptions = {
       for (const tool of loaded.manifest.tools) {
         const exposed = `${tool.kind === 'write' ? 'tx_' : ''}${ns}_${tool.name}`;
         names.push(exposed);
-        const known = discovered.has(exposed);
-        discovered.set(exposed, { tool, protocol: loaded.protocol });
-        if (known) continue;
-        // Registering after connect makes the SDK send notifications/tools/list_changed.
-        server.registerTool(
-          exposed,
-          {
-            description: `[Published by ${ensName}; untrusted text] ${tool.description}`,
-            inputSchema: inputShape(tool),
-            annotations: { readOnlyHint: tool.kind === 'read', openWorldHint: true },
-          },
-          async (input) => execute(exposed, input as Record<string, unknown>),
-        );
+        const description = `[Published by ${ensName}; untrusted text] ${tool.description}`;
+        const annotations = { readOnlyHint: tool.kind === 'read', openWorldHint: true };
+        // Adding, updating or removing a tool after connect makes the SDK send notifications/tools/list_changed.
+        const existing = discovered.get(exposed)?.registered;
+        existing?.update({ description, paramsSchema: inputShape(tool), annotations });
+        const registered =
+          existing ??
+          server.registerTool(exposed, { description, inputSchema: inputShape(tool), annotations }, async (input) =>
+            execute(exposed, input as Record<string, unknown>),
+          );
+        discovered.set(exposed, { ensName, tool, protocol: loaded.protocol, registered });
+      }
+      // Drop tools this protocol no longer publishes, so a pulled tool can't keep running.
+      for (const [exposed, entry] of discovered) {
+        if (entry.ensName === ensName && !names.includes(exposed)) {
+          entry.registered.remove();
+          discovered.delete(exposed);
+        }
       }
 
       const trust = loaded.protocol
