@@ -1,0 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #EAE8E1;
+  --foreground: #111316;
+  --canvas: #EAE8E1;
+  --canvas-light: #F7F4EC;
+  --surface: #FFFFFF;
+  --accent: #E57E25;        /* Warm Amber / Terracotta */
+  --accent-light: #FCEBD9;
+  --charcoal: #16181B;
+  --muted: #5A5D64;
+  --divider: #D8D4CA;
+  --divider-subtle: #E2DFD6;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Enforce strict sharp geometry - strictly no rounded pills */
+*, ::before, ::after {
+  border-radius: 0px !important;
+}
+
+/* Editorial Serif Utility matching Handhold exact typography */
+.font-editorial {
+  font-family: "Libre Baskerville", "Newsreader", "Lora", Baskerville, "Times New Roman", serif;
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+/* Custom sharp utilities */
+.border-sharp {
+  border: 1px solid var(--divider);
+}
+
+.shadow-sharp-solid {
+  box-shadow: 2px 2px 0px #16181B;
+}
+
+.shadow-sharp-sand {
+  box-shadow: 2px 2px 0px #D8D4CA;
+}
+
+.shadow-sharp-accent {
+  box-shadow: 2px 2px 0px #E57E25;
+}
+
+/* Fine film/paper grain texture overlay matching Handhold */
+.bg-grain {
+  background-image: radial-gradient(rgba(22, 24, 27, 0.07) 1px, transparent 1px);
+  background-size: 6px 6px;
+}
