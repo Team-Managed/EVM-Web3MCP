@@ -14,7 +14,7 @@ const IMPLEMENTATION_SLOTS: Hex[] = [
 // EIP-1167 minimal proxies carry the implementation address inside their code.
 const MINIMAL_PROXY = /^0x363d3d373d3d3d363d73([0-9a-f]{40})5af43d82803e903d91602b57fd5bf3$/;
 
-/** owner-verified: the contract's primary name is the publishing name. name-only: only the name vouches for it. */
+/** owner-verified: the contract's primary name is the publishing name or a subname of it. name-only: only the name vouches for it. */
 export type Trust = 'owner-verified' | 'name-only';
 
 export interface ContractInfo {
@@ -74,8 +74,11 @@ export async function verifyManifest(client: ChainClient, manifest: Manifest, na
           throw new DiscoveryError(`${alias}: ${address} has no function with selector ${selector} that the manifest declares.`);
         }
       }
+      // ENS only returns a primary name whose address record points back to this contract, so a protocol
+      // with several contracts verifies the extra ones through subnames, such as quoter.uniswap.eth.
       const primary = await client.getEnsName({ address }).catch(() => null);
-      contracts[alias] = { address, trust: primary === ensName ? 'owner-verified' : 'name-only', fingerprint };
+      const ownerVerified = primary === ensName || !!primary?.endsWith(`.${ensName}`);
+      contracts[alias] = { address, trust: ownerVerified ? 'owner-verified' : 'name-only', fingerprint };
     }),
   );
   return { name: ensName, manifest, contracts };

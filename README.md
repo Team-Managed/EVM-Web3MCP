@@ -8,7 +8,7 @@ Sibling of [Solana-Web3MCP](https://github.com/Team-Managed/Solana-Web3MCP). Bui
 
 1. **Publish.** The protocol stores a manifest in text records on its own ENS name, such as `uniswap.eth`. With ENSv2 per-record roles, a release key can update the tools but nothing else on the name.
 2. **Find (optional).** If the user names a protocol, the agent goes straight to it. If they only describe a goal ("swap my ETH"), the agent searches an index on Arkiv for matching ENS names.
-3. **Discover.** The host reads and validates the manifest from ENS. A contract whose own primary name points back to the publishing name is owner-verified; otherwise it's labelled name-only.
+3. **Discover.** The host reads and validates the manifest from ENS. A contract whose own primary name points back to the publishing name, or one of its subnames, is owner-verified; otherwise it's labelled name-only.
 4. **Use.** Reads are plain contract calls. Writes are simulated, shown on a local signing page with the exact balance changes, and signed in the user's wallet.
 
 Details: [spec/SPEC.md](spec/SPEC.md).

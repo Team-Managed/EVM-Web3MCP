@@ -11,6 +11,15 @@ test('discovers a published protocol and sets trust per contract', async () => {
   assert.equal(protocol.manifest.tools.length, 3);
 });
 
+test('a subname of the publishing name owner-verifies a contract; a lookalike does not', async () => {
+  const chain = vaultChain();
+  chain.primaryNames![USDC] = 'usdc.vault.web3mcp-demo.eth';
+  chain.primaryNames![VAULT] = 'notvault.web3mcp-demo.eth';
+  const protocol = await discover(fakeClient(chain), 'vault.web3mcp-demo.eth');
+  assert.equal(protocol.contracts.usdc.trust, 'owner-verified');
+  assert.equal(protocol.contracts.vault.trust, 'name-only');
+});
+
 test('rejects a manifest that does not match its digest', async () => {
   const records = published(vaultManifest);
   records['org.web3mcp.digest'] = published({ other: true })['org.web3mcp.digest'];
