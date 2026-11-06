@@ -2,6 +2,16 @@
   "name": "@web3mcp/evm",
   "version": "0.0.1",
   "description": "Discover and validate Web3MCP tools published by EVM contracts under their ENS name",
+  "keywords": [
+    "web3mcp",
+    "mcp",
+    "ens",
+    "evm",
+    "ethereum",
+    "ai-agents",
+    "viem"
+  ],
+  "homepage": "https://github.com/Team-Managed/EVM-Web3MCP#readme",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -27,10 +37,16 @@
   },
   "scripts": {
     "build": "tsc -p .",
+    "prepack": "npm run build",
     "test": "node --test \"test/*.test.ts\""
   },
   "dependencies": {
-    "viem": "^2.57.16",
     "zod": "^4.6.7"
+  },
+  "peerDependencies": {
+    "viem": "^2.30.0"
+  },
+  "devDependencies": {
+    "viem": "^2.57.16"
   }
 }
