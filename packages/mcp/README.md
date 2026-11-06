@@ -2,12 +2,13 @@
 
 One generic MCP server for every EVM contract that publishes Web3MCP tools. Claude Code and Codex install it through the plugins in [`plugins/`](../../plugins).
 
-It starts with two tools:
+It starts with three tools:
 
 - `discover(name)` reads a protocol's tools from its ENS name, checks its contracts, registers the tools (`<protocol>_<tool>` for reads, `tx_<protocol>_<tool>` for writes), and notifies the client that its tool list changed.
 - `call(tool, args)` runs a discovered tool, for clients that don't refresh their tool list.
+- `status(id)` reports whether you signed a write and whether it confirmed on chain.
 
-Reads run straight away. Writes are prepared and simulated, and the result shows the steps and your balance changes. Sending them for signing in your wallet arrives with the local signing page.
+Reads run straight away. A write is prepared and simulated, then the server opens the [signing page](../approve-ui) in your browser, where your own wallet signs. The agent never holds a key.
 
 ## Settings
 

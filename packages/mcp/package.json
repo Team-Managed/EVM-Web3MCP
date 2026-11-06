@@ -29,7 +29,8 @@
     }
   },
   "scripts": {
-    "build": "tsc -p .",
+    "build": "tsc -p . && esbuild ../approve-ui/src/page.ts ../approve-ui/src/page.css --bundle --minify --format=esm --platform=browser --target=es2022 --outdir=dist/approve && npm run bundle",
+    "bundle": "esbuild dist/index.js --bundle --platform=node --format=esm --target=node22 --minify --legal-comments=none --outfile=../../plugins/claude-code/server/web3mcp.mjs && node -e \"require('node:fs').cpSync('dist/approve', '../../plugins/claude-code/server/approve', { recursive: true })\"",
     "test": "node --test \"test/*.test.ts\""
   },
   "dependencies": {

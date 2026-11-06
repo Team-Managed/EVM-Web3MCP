@@ -124,7 +124,7 @@ function selectorsByContract(manifest: Manifest): Map<string, Set<Hex>> {
   for (const tool of manifest.tools) {
     if (tool.kind === 'read') {
       add(tool.call.contract, tool.call.function);
-      if (tool.output) add(tool.output.decimalsFrom, 'function decimals() view returns (uint8)');
+      if (tool.output?.decimalsFrom) add(tool.output.decimalsFrom, 'function decimals() view returns (uint8)');
       continue;
     }
     for (const step of tool.steps) {
