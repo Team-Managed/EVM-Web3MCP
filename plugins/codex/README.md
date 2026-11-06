@@ -92,7 +92,7 @@ WEB3MCP_ACCOUNT = "yourname.eth" # replace with your public address or ENS name,
 WEB3MCP_RPC_URL = ""
 ```
 
-Merge these settings into existing tables. When using the local launcher for live work, also set `WEB3MCP_MODE="live"` as below. Discovered read tools have read-only annotations; the generic `call` fallback does not. Codex approval policy does not replace explicit authorization for preparation or the user's wallet confirmation. Bundle setup is an implementation-supported alternative, not part of the historical launcher verification recorded below.
+Merge these settings into existing tables. When using the local launcher for live work, also set `WEB3MCP_MODE="live"` as below. `default_tools_approval_mode` accepts `auto`, `prompt`, `writes` or `approve`; `writes` asks before any tool not marked read-only. Discovered read tools have read-only annotations; the generic `call` fallback does not, so with `writes` Codex also asks before reads run through `call`. Codex approval policy does not replace explicit authorization for preparation or the user's wallet confirmation. Bundle setup is an implementation-supported alternative, not part of the historical launcher verification recorded below.
 
 ## Live ENS configuration
 
@@ -257,7 +257,7 @@ ENS `owner-verified` means the contract's primary ENS name matches the publishin
 - Rejected request: report rejection and stop. A new preparation needs fresh user authorization; do not automatically retry.
 - Pending or `not found on chain yet`: pending can mean the page has not reported completion; receipt lookup RPC failures also appear as not found. Check RPC availability and known wallet hashes before drawing conclusions or retrying.
 - Dynamically registered tools absent: establish the exact live schema before using `call({tool, args})`; see the schema guidance above. Only call successfully discovered tools with the same approval requirements.
-- Skill missing or still describing fixture-only execution: open Codex from this repository, refresh the ignored `.agents/skills/web3mcp` copy from the tracked skill, and start a new conversation. An execution-not-implemented message may indicate an outdated runtime; it is not a successful contract call.
+- Skill missing or still describing fixture-only execution: open Codex from this repository, refresh the ignored `.agents/skills/web3mcp` copy from the tracked skill, and start a new conversation.
 - Shared diagnostics: redact API keys, URL credentials, and sensitive RPC path/query components before sharing errors. Launcher diagnostics omit endpoint values, but downstream RPC errors may contain them.
 
 Do not claim live ENS discovery, balances, simulations, transaction submission, or wallet signing worked unless verified through the actual runtime.
