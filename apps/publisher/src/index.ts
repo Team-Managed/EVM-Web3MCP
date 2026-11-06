@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
-import { createPublicClient as createArkivClient, createWalletClient as createArkivWallet, ExpirationTime, type CreateEntityParameters } from '@arkiv-network/sdk';
+import { createPublicClient as createArkivClient, createWalletClient as createArkivWallet, ExpirationTime } from '@arkiv-network/sdk';
 import { rabdi } from '@arkiv-network/sdk/chains';
 import { and, eq } from '@arkiv-network/sdk/query';
 import { createPublicClient, http, type Hex } from 'viem';
@@ -9,6 +9,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { mainnet, sepolia } from 'viem/chains';
 import { DIGEST_KEY, discover, listing, LISTING, readCode, search, validateManifest, verifyManifest, type Protocol } from '@web3mcp/evm';
 import { manifestRecords, publishCalldata, SET_TEXT_SELECTORS } from './records.js';
+import { refreshBatch } from './refresh.js';
 
 const USAGE = `Usage:
   web3mcp-publish validate <manifest.json>       check the format, offline
@@ -129,17 +130,11 @@ async function index(name: string, keystore: string): Promise<void> {
     .where(and(eq('arkiv.schema', LISTING), eq('ens', protocol.name)))
     .ownedBy(account.address)
     .fetch();
-  const current = entities.find((e) => (e.digest as { value?: unknown } | undefined)?.value === digest)?.$key;
   const expiration = ExpirationTime.fromDays(LIFETIME_DAYS);
   const entry = listing(protocol.manifest, digest);
-  const creates: CreateEntityParameters[] = current ? [] : [{ schema: entry.schema, values: entry.values, expiration }];
-
   // One transaction: drop outdated listings, then extend the current one or write a new one.
-  const result = await wallet.executeBatch({
-    deletes: entities.filter((e) => e.$key !== current).map((e) => ({ entityKey: e.$key })),
-    extensions: current ? [{ entityKey: current, expiration }] : [],
-    creates,
-  });
+  const { current, batch } = refreshBatch(entities, digest, { schema: entry.schema, values: entry.values, expiration }, expiration);
+  const result = await wallet.executeBatch(batch);
 
   const key = current ?? result.createdEntities[0];
   console.log(`✓ ${protocol.name} ${current ? 'listing extended' : 'listed'} on Arkiv by ${account.address}, for ${LIFETIME_DAYS} days.`);
