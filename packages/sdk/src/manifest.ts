@@ -77,6 +77,8 @@ export function validateManifest(json: unknown): Manifest {
 function checkReferences(m: Manifest): string[] {
   const issues: string[] = [];
   const names = new Set<string>();
+  // The signing page shows the user's own address as "you", so no contract may take that name.
+  if ('you' in m.contracts) issues.push('contracts.you: "you" is reserved for the user\'s own wallet');
 
   for (const t of m.tools) {
     const at = `tools.${t.name}`;
@@ -108,6 +110,13 @@ function checkReferences(m: Manifest): string[] {
         checkAlias(s.approve.token, `${at}.approve`);
         checkAlias(s.approve.spender, `${at}.approve`);
         checkBinding(s.approve.amount, `${at}.approve`);
+        // An approval moves no tokens, so the simulation can't expose a wrong unit: the amount shown as
+        // "N <token>" must be scaled by the token being approved, or be a literal in its base units.
+        const [root, key] = s.approve.amount.slice(1).split('.', 2);
+        const input = root === 'input' ? t.inputs[key] : undefined;
+        if (s.approve.amount.startsWith('$') && (input?.type !== 'amount' || input.token !== s.approve.token)) {
+          issues.push(`${at}.approve: the amount must be a literal or an amount input in ${s.approve.token}`);
+        }
       }
     }
 

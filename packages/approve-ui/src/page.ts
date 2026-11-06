@@ -184,11 +184,12 @@ async function sign() {
     sent = true;
     calls.forEach((_, i) => mark(i, 'confirming'));
     const result = await wallet.waitForCallsStatus({ id: batch, timeout: 300_000 });
-    (result.receipts ?? []).forEach((r, i) => {
-      hashes.push(r.transactionHash);
-      mark(i, r.status === 'success' ? 'done' : 'failed', r.transactionHash);
-    });
-    if (result.status !== 'success') throw new Error(`The wallet reports the transaction failed. ${hashes.join(' ')}`);
+    // A wallet that runs the batch as one transaction returns one receipt for every step (EIP-5792).
+    const receipts = result.receipts ?? [];
+    hashes.push(...receipts.map((r) => r.transactionHash));
+    const ok = result.status === 'success';
+    calls.forEach((_, i) => mark(i, ok ? 'done' : 'failed', (receipts[i] ?? receipts.at(-1))?.transactionHash));
+    if (!ok) throw new Error(`The wallet reports the transaction failed. ${hashes.join(' ')}`);
   } else {
     // This wallet can't batch: send one step at a time and wait for each, so later steps see earlier ones.
     for (const [i, call] of calls.entries()) {
@@ -400,8 +401,10 @@ fetch(`/api/approvals/${id}`)
   .then(async (res) => {
     if (!res.ok) throw new Error('This signing request no longer exists. Ask your agent to prepare it again.');
     approval = await res.json();
-    const signed = approval.status === 'submitted' && approval.hashes.length === approval.calls.length;
-    steps = approval.calls.map((_, i) => (signed ? { state: 'done', hash: approval.hashes[i] } : { state: 'idle' }));
+    const signed = approval.status === 'submitted';
+    steps = approval.calls.map((_, i) =>
+      signed ? { state: 'done', hash: approval.hashes[i] ?? approval.hashes.at(-1) } : { state: 'idle' },
+    );
     render();
   })
   .catch((e) => app.replaceChildren(h('p', { class: 'banner failed' }, messageOf(e))));

@@ -23,11 +23,14 @@ If the server is unavailable, report that and refer to the integration README.
    implementation as described in `plugins/codex/README.md` from the repository
    root, section "AgentSwap write schema and example".
    A fixture alone does not establish the current ENS schema. Stop if uncertain.
-3. If registered tools are absent from the client list, the documented fallback
-   is Web3MCP `call({"tool":"<registered name>","args":{...}})`. It does not bypass
-   discovery or approval. Check the registered input schema before using it; the
-   shared fallback does not apply the dynamic tool's Zod schema. Its generic non-read-only annotation
-   does not determine the underlying tool's type.
+3. If registered tools are absent from the client list, run reads through the
+   read-only `read({"tool":"<registered name>","args":{...}})` and writes through
+   `call` with the same shape. Neither bypasses discovery or approval. Use the
+   input names `discover` lists next to each tool, such as
+   `tx_agentswap_eth_to_usdc(amount, min_usdc, recipient)`; the fallbacks don't
+   apply the dynamic tool's Zod schema. Amounts may have no more decimal places
+   than the token has (USDC has 6). If a write says no wallet is set, ask the user
+   for their public address or ENS name and call `wallet` with it.
 4. In live mode reads query Sepolia state. Dry-run quotes use eth_call and never
    submit transactions. Write tools prepare and simulate calls, then create a pending local
    signing request and return its page URL and request ID. A write is not a simulation-only
@@ -78,12 +81,15 @@ must be corrected before dependent calls.
 ENS-shaped fixture names and chain IDs do not prove live access. Check the actual
 discovery source: live responses must say "from ENS". The documented AgentSwap
 deployment is agentswap.web3mcp.eth on Sepolia (11155111), swap contract
-0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C. Verify actual discovery and trust labels.
-Use only registered schemas: the swap tools require amount and recipient; use
-the user's public wallet as recipient unless they explicitly choose another.
-ETH → USDC `amount` is a decimal ETH string: `"0.001"` means 0.001 ETH,
-converted to 1000000000000000 wei as value for payable
-`swapEthToUsdc(address recipient)`. USDC → ETH uses decimal USDC strings.
+0xE17021E2fd5Dd0A6608293E7Ac5E3c361ae30e58. Verify actual discovery and trust labels.
+Use only registered schemas: ETH → USDC requires amount, min_usdc and recipient;
+USDC → ETH requires amount, min_eth and recipient. Use the user's public wallet as
+recipient unless they explicitly choose another. Get a quote with the matching
+quote read first and set the minimum about 1% below it; pass 0 only if the user
+asks for no minimum. ETH → USDC `amount` is a decimal ETH string: `"0.001"` means
+0.001 ETH, converted to 1000000000000000 wei as value for payable
+`swapEthToUsdc(uint256 minUsdcOut, address recipient)`. USDC → ETH uses decimal
+USDC strings; `min_eth` is decimal ETH.
 Simulation requires RPC support for eth_simulateV1 and asset-tracing state
 overrides, beyond ordinary reads. Stop on simulation or oracle-price errors;
 never bypass the contract's Chainlink guard. Signing and submission occur only

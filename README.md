@@ -41,9 +41,17 @@ claude plugin marketplace add Team-Managed/EVM-Web3MCP
 claude plugin install web3mcp@evm-web3mcp
 ```
 
-Codex: see [plugins/codex](plugins/codex/README.md).
+Codex installs the same plugin from the same marketplace:
 
-The plugin carries the server as one bundled file (`plugins/claude-code/server/`), so it needs only Node 22 or newer; nothing is downloaded from npm. Set your wallet address in the plugin's options so writes can be simulated.
+```bash
+codex plugin marketplace add Team-Managed/EVM-Web3MCP
+```
+
+```bash
+codex plugin add web3mcp@evm-web3mcp
+```
+
+The plugin carries the server as one bundled file (`plugins/claude-code/server/`) with the signing page, so it needs only Node 22 or newer; nothing is downloaded from npm. Claude Code takes your wallet address from the plugin's options. In Codex, or any time, tell the agent your wallet ("my wallet is yourname.eth") and it sets it with the `wallet` tool. More on Codex, including a development launcher: [plugins/codex](plugins/codex/README.md).
 
 ## Develop
 
@@ -69,7 +77,7 @@ cd contracts && forge test --fork-url https://ethereum-sepolia-rpc.publicnode.co
 
 `AgentSwap` (`contracts/src/AgentSwap.sol`) is published as `agentswap.web3mcp.eth`. It swaps ETH and USDC on Uniswap v4's Sepolia pool, quotes through Uniswap's own Quoter, and refuses any swap that pays more than 3% below Chainlink's ETH/USD price. It holds no funds. Its manifest is `spec/fixtures/valid/agentswap.web3mcp.eth.json`.
 
-It's live on Sepolia at [`0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C`](https://sepolia.etherscan.io/address/0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C), owned by `web3mcp.eth`. `agentswap.web3mcp.eth` points at it and holds its manifest, and its primary name points back, so discovery marks it owner-verified. It was deployed through the deterministic CREATE2 deployer and published from the owner's wallet on the local signing page. The constructor takes the owner, Uniswap's PoolManager and Quoter, Chainlink's ETH/USD feed, and Circle's USDC.
+It's live on Sepolia at [`0xE17021E2fd5Dd0A6608293E7Ac5E3c361ae30e58`](https://sepolia.etherscan.io/address/0xE17021E2fd5Dd0A6608293E7Ac5E3c361ae30e58), owned by `web3mcp.eth`. `agentswap.web3mcp.eth` points at it and holds its manifest, and its primary name points back, so discovery marks it owner-verified. It was deployed through the deterministic CREATE2 deployer and published from the owner's wallet on the local signing page. The constructor takes the owner, Uniswap's PoolManager and Quoter, Chainlink's ETH/USD feed, and Circle's USDC.
 
 ## GiftBox (Sepolia)
 

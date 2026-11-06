@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "web3mcp": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["./server/web3mcp.mjs"],
+      "cwd": "./"
+    }
+  }
+}
