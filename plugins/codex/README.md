@@ -2,7 +2,7 @@
 
 Codex integration for discovering and using validated EVM protocol tools through the Web3MCP MCP server.
 
-The included local launcher supports fixture-backed discovery. Live ENS resolution, contract reads, and transaction capabilities depend on the installed SDK/MCP implementation and configuration.
+The included local launcher runs offline fixture discovery only. Live ENS discovery, reads, write simulation and the local signing page are implemented in the shared MCP server; to use them from Codex without building anything, register the bundled server (see "Live ENS configuration").
 
 ## Build
 
@@ -56,7 +56,7 @@ codex mcp get web3mcp
 
 Then invoke `$web3mcp` in a new Codex conversation.
 
-The local launcher resolves paths relative to its own file location and currently sets `WEB3MCP_MANIFEST_DIR` to `spec/fixtures/valid`.
+The local launcher resolves the repository's `spec/fixtures/valid` folder relative to its own file and passes it to the server directly. It never connects to a chain.
 
 Re-register after moving the repository or Node installation.
 
@@ -70,9 +70,13 @@ Remove the locally installed skill folder separately if necessary.
 
 ## Live ENS configuration
 
-The shared SDK/MCP implementation may support live ENS discovery, contract reads, and transaction preparation.
+The included `serve.ts` launcher always uses local fixtures; live settings don't switch it. For live ENS discovery, register the shared server instead. The Claude Code plugin ships it as one bundled file with the signing page next to it, so a clone of this repository and Node 22+ are all it needs, with no `npm ci` or build:
 
-The following settings were introduced by the shared team's configuration and should be checked against the installed MCP implementation and Codex version before use:
+```sh
+codex mcp add web3mcp -- node /path/to/EVM-Web3MCP/plugins/claude-code/server/web3mcp.mjs
+```
+
+Use this instead of the launcher registration above, not both under the same name. Then set its options in `~/.codex/config.toml` (`%USERPROFILE%\.codex\config.toml` on Windows):
 
 ```toml
 [mcp_servers.web3mcp]
@@ -83,11 +87,15 @@ WEB3MCP_ACCOUNT = "yourname.eth"
 WEB3MCP_RPC_URL = ""
 ```
 
-`WEB3MCP_ACCOUNT` is a public wallet address or ENS name, never a private key. An empty RPC URL is intended to select the shared implementation's default Sepolia RPC endpoint.
+| Variable | Meaning |
+|---|---|
+| `WEB3MCP_ACCOUNT` | Your public wallet address or ENS name, used to simulate writes. Never a key. |
+| `WEB3MCP_RPC_URL` | RPC endpoint. Empty uses viem's public default for the chain. |
+| `WEB3MCP_CHAIN` | `sepolia` (default) or `mainnet`. |
 
-Do not duplicate an existing `[mcp_servers.web3mcp]` table. Add the relevant settings to the existing server configuration.
+`default_tools_approval_mode` accepts `auto`, `prompt`, `writes` or `approve`; `writes` asks before any tool not marked read-only. Merge these into an existing `[mcp_servers.web3mcp]` table rather than adding a second one.
 
-The included `serve.ts` launcher currently forces local fixture discovery. Setting live account/RPC variables alone does not switch that launcher to live ENS mode. Use the live SDK/MCP configuration once its launch requirements are confirmed.
+Writes are simulated, then the server opens the local signing page in your browser, where your own wallet signs. Call `status` with the returned id to check the result.
 
 Do not rely solely on MCP approval settings for transaction safety. Every write requires explicit user approval, and wallet signing must remain under user control.
 
@@ -135,11 +143,9 @@ https://developers.openai.com/plugins/build/plugins
 
 This is a skills-only plugin package. The manual skill installation above is the currently tested activation method.
 
-There is intentionally no plugin-level `mcp.json`. The local MCP launcher depends on sibling server packages and fixtures outside the plugin folder. Plugin caching may omit these dependencies.
+There is intentionally no plugin-level `mcp.json`. The local MCP launcher depends on sibling server packages and fixtures outside the plugin folder, and Codex copies only the plugin folder into its cache when it installs a plugin, so they wouldn't be there.
 
-Installing the plugin alone does not automatically register the MCP server.
-
-Automatic plugin installation and cache activation have not been verified.
+Installing the plugin alone does not register the MCP server. This folder isn't listed in the repository's marketplace; install the skill manually as above.
 
 The included development launcher is fixture-backed. Live ENS discovery and execution must be tested against the shared SDK/MCP implementation separately.
 
@@ -148,9 +154,8 @@ The included development launcher is fixture-backed. Live ENS discovery and exec
 - Missing build/modules: run `npm ci` and `npm run build` from the repository root.
 - Wrong Node version: use Node 24 and verify the executable path.
 - No discover tool: run `codex mcp get web3mcp`, check registration, and restart Codex.
-- ENS discovery unavailable: confirm whether the active server is running fixture or live mode.
+- ENS discovery unavailable: the launcher is fixture-only; register the bundled server for live discovery.
 - Dynamically registered tools absent: use the documented `call({tool, args})` fallback only for successfully discovered tools, preserving the same approval requirements.
-- A message saying a tool is discovered but execution is not implemented indicates a runtime limitation, not a successful contract call.
 - Skill missing: open Codex from the repository containing the installed `.agents/skills/web3mcp` skill.
 
 Do not claim live ENS discovery, balances, simulations, transaction submission, or wallet signing worked unless verified through the actual runtime.
