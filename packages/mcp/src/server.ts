@@ -2,35 +2,82 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { validateManifest, type Manifest, type ToolDeclaration } from '@web3mcp/evm';
+import {
+  discover as discoverFromEns,
+  executeRead,
+  prepareWrite,
+  resolveAddress,
+  validateManifest,
+  verifyManifest,
+  type ChainClient,
+  type Manifest,
+  type PreparedWrite,
+  type Protocol,
+  type ToolDeclaration,
+} from '@web3mcp/evm';
 import { z } from 'zod';
 
 // Also blocks path traversal: no slashes, and no empty labels, so no "..".
 const ENS_NAME = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 
 export interface ServerOptions {
-  // shortcut: discover reads <manifestDir>/<ens-name>.json instead of ENS records; replace with ENS resolution in build step 4.
+  /** Chain connection for ENS lookups and contract calls. Without one, discovered tools are listed but can't run. */
+  client?: ChainClient;
+  /** The user's wallet address or ENS name, used to simulate writes. Never a key. */
+  account?: string;
+  // shortcut: <manifestDir>/<ens-name>.json is checked before ENS so we can develop before names are published; drop once the demo names are live.
   manifestDir?: string;
+}
+
+interface Discovered {
+  tool: ToolDeclaration;
+  protocol?: Protocol;
 }
 
 const text = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t }] });
 const fail = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t }], isError: true });
+const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-export function createServer({ manifestDir }: ServerOptions = {}): McpServer {
+export function createServer({ client, account, manifestDir }: ServerOptions = {}): McpServer {
   const server = new McpServer({ name: 'web3mcp', version: '0.0.1' });
-  const discovered = new Map<string, { manifest: Manifest; tool: ToolDeclaration }>();
+  const discovered = new Map<string, Discovered>();
   const namespaces = new Map<string, string>();
+  let sender: Promise<`0x${string}`> | undefined;
 
-  // shortcut: discovered tools are registered but not executed yet; wire SDK reads and writes in build step 2.
-  const execute = async (exposed: string): Promise<CallToolResult> =>
-    fail(`${exposed} is discovered, but running tools isn't implemented yet.`);
+  async function load(ensName: string): Promise<{ manifest: Manifest; protocol?: Protocol; source: string }> {
+    const local = manifestDir ? await readFile(join(manifestDir, `${ensName}.json`), 'utf8').catch(() => undefined) : undefined;
+    if (local !== undefined) {
+      const manifest = validateManifest(JSON.parse(local));
+      if (manifest.name !== ensName) throw new Error(`That manifest is for ${manifest.name}, not ${ensName}.`);
+      return { manifest, protocol: client && (await verifyManifest(client, manifest, ensName)), source: 'a local manifest file' };
+    }
+    if (!client) throw new Error('No chain connection, so ENS lookups are unavailable.');
+    const protocol = await discoverFromEns(client, ensName);
+    return { manifest: protocol.manifest, protocol, source: 'ENS' };
+  }
+
+  async function execute(exposed: string, input: Record<string, unknown>): Promise<CallToolResult> {
+    const { tool, protocol } = discovered.get(exposed)!;
+    if (!client || !protocol) return fail(`${exposed} can't run without a chain connection.`);
+    try {
+      if (account) sender ??= resolveAddress(client, account);
+      const from = await sender;
+      if (tool.kind === 'read') {
+        const result = await executeRead(client, protocol, tool.name, input, from);
+        return text(typeof result === 'string' ? result : JSON.stringify(result, null, 2));
+      }
+      return text(review(exposed, await prepareWrite(client, protocol, tool.name, input, from), protocol));
+    } catch (e) {
+      return fail(message(e));
+    }
+  }
 
   server.registerTool(
     'discover',
     {
       title: 'Discover a protocol',
       description:
-        'Load the tools a protocol publishes under its ENS name, such as vault.web3mcp-demo.eth. ' +
+        'Load the tools a protocol publishes under its ENS name, such as uniswap.eth. ' +
         'Its tools are added to your tool list: reads as <protocol>_<tool>, writes as tx_<protocol>_<tool>.',
       inputSchema: { name: z.string().describe('ENS name of the protocol') },
       annotations: { readOnlyHint: true, openWorldHint: true },
@@ -38,17 +85,13 @@ export function createServer({ manifestDir }: ServerOptions = {}): McpServer {
     async ({ name }) => {
       const ensName = name.trim().toLowerCase();
       if (!ENS_NAME.test(ensName)) return fail(`Not an ENS name: ${name}`);
-      if (!manifestDir) {
-        return fail('ENS discovery is not implemented yet. Set WEB3MCP_MANIFEST_DIR to a folder of <ens-name>.json manifests.');
-      }
 
-      let manifest: Manifest;
+      let loaded: Awaited<ReturnType<typeof load>>;
       try {
-        manifest = validateManifest(JSON.parse(await readFile(join(manifestDir, `${ensName}.json`), 'utf8')));
+        loaded = await load(ensName);
       } catch (e) {
-        return fail(`Could not load ${ensName}: ${e instanceof Error ? e.message : String(e)}`);
+        return fail(`Could not discover ${ensName}: ${message(e)}`);
       }
-      if (manifest.name !== ensName) return fail(`That manifest is for ${manifest.name}, not ${ensName}.`);
 
       const ns = ensName.split('.')[0].replaceAll('-', '_');
       const owner = namespaces.get(ns);
@@ -56,11 +99,12 @@ export function createServer({ manifestDir }: ServerOptions = {}): McpServer {
       namespaces.set(ns, ensName);
 
       const names: string[] = [];
-      for (const tool of manifest.tools) {
+      for (const tool of loaded.manifest.tools) {
         const exposed = `${tool.kind === 'write' ? 'tx_' : ''}${ns}_${tool.name}`;
         names.push(exposed);
-        if (discovered.has(exposed)) continue;
-        discovered.set(exposed, { manifest, tool });
+        const known = discovered.has(exposed);
+        discovered.set(exposed, { tool, protocol: loaded.protocol });
+        if (known) continue;
         // Registering after connect makes the SDK send notifications/tools/list_changed.
         server.registerTool(
           exposed,
@@ -69,12 +113,17 @@ export function createServer({ manifestDir }: ServerOptions = {}): McpServer {
             inputSchema: inputShape(tool),
             annotations: { readOnlyHint: tool.kind === 'read', openWorldHint: true },
           },
-          async () => execute(exposed),
+          async (input) => execute(exposed, input as Record<string, unknown>),
         );
       }
+
+      const trust = loaded.protocol
+        ? Object.entries(loaded.protocol.contracts).map(([alias, c]) => `${alias} ${c.address} (${c.trust})`).join('; ')
+        : 'not checked on chain';
       return text(
-        `Discovered ${ensName} on chain ${manifest.chainId}: ${names.join(', ')}. ` +
-          `If these tools don't appear in your tool list, run them with the call tool.`,
+        `Discovered ${ensName} from ${loaded.source}, chain ${loaded.manifest.chainId}.\n` +
+          `Contracts: ${trust}.\n` +
+          `Tools: ${names.join(', ')}. If these don't appear in your tool list, run them with the call tool.`,
       );
     },
   );
@@ -88,10 +137,26 @@ export function createServer({ manifestDir }: ServerOptions = {}): McpServer {
       inputSchema: { tool: z.string(), args: z.record(z.string(), z.unknown()).default({}) },
       annotations: { readOnlyHint: false, openWorldHint: true },
     },
-    async ({ tool }) => (discovered.has(tool) ? execute(tool) : fail(`Unknown tool ${tool}. Run discover first.`)),
+    async ({ tool, args }) => (discovered.has(tool) ? execute(tool, args) : fail(`Unknown tool ${tool}. Run discover first.`)),
   );
 
   return server;
+}
+
+function review(exposed: string, prepared: PreparedWrite, protocol: Protocol): string {
+  const steps = prepared.calls.map((c, i) => `${i + 1}. ${c.description}`).join('\n');
+  const changes = prepared.assetChanges.length
+    ? prepared.assetChanges.map((c) => `${c.symbol ?? c.token} ${c.change.startsWith('-') ? c.change : `+${c.change}`}`).join(', ')
+    : 'none';
+  const trust = Object.entries(protocol.contracts).map(([alias, c]) => `${alias} ${c.trust}`).join(', ');
+  return [
+    `Prepared ${exposed} on ${prepared.protocol} for ${prepared.account}. The simulation succeeded.`,
+    `Steps:\n${steps}`,
+    `Balance changes for this wallet: ${changes}`,
+    `Trust: ${trust}`,
+    // shortcut: nothing is sent yet; hand prepared calls to the local signing page (packages/approve-ui) next.
+    'Not sent: signing in your wallet arrives with the local signing page, the next build step.',
+  ].join('\n');
 }
 
 function inputShape(tool: ToolDeclaration): Record<string, z.ZodType> {

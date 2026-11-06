@@ -5,12 +5,13 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { createServer } from '../dist/server.js';
+import { createServer, type ServerOptions } from '../dist/server.js';
+import { fakeClient, USDC, vaultChain } from '../../sdk/test/fake-chain.ts';
 
 const manifestDir = fileURLToPath(new URL('../../../spec/fixtures/valid/', import.meta.url));
 
-async function connect() {
-  const server = createServer({ manifestDir });
+async function connect(options: ServerOptions = { manifestDir }) {
+  const server = createServer(options);
   const client = new Client({ name: 'test', version: '0.0.0' });
   const changes: unknown[] = [];
   client.setNotificationHandler(ToolListChangedNotificationSchema, (n) => {
@@ -51,4 +52,33 @@ test('discover refuses names that could escape the manifest folder', async () =>
   const { client } = await connect();
   const result = await call(client, 'discover', { name: '../../etc/passwd' });
   assert.equal(result.isError, true);
+});
+
+const textOf = (result: CallToolResult) => {
+  const first = result.content[0];
+  return first?.type === 'text' ? first.text : '';
+};
+
+test('tools discovered from ENS run reads and prepare writes', async () => {
+  const chain = fakeClient(
+    vaultChain({
+      read: (fn) => ({ decimals: 6, balanceOf: 10_500000n, allowance: 0n })[fn],
+      simulate: (calls) => ({
+        results: calls.map(() => ({ status: 'success' })),
+        assetChanges: [{ token: { address: USDC, symbol: 'USDC', decimals: 6 }, value: { pre: 0n, post: 0n, diff: -10_000000n } }],
+      }),
+    }),
+  );
+  const { client } = await connect({ client: chain, account: '0x00000000000000000000000000000000000000aa' });
+
+  const discovered = textOf(await call(client, 'discover', { name: 'vault.web3mcp-demo.eth' }));
+  assert.match(discovered, /from ENS/);
+  assert.match(discovered, /vault 0x0+1 \(owner-verified\)/);
+
+  assert.equal(textOf(await call(client, 'vault_get_balance', { owner: '0x00000000000000000000000000000000000000aa' })), '10.5 USDC');
+
+  const review = textOf(await call(client, 'call', { tool: 'tx_vault_deposit', args: { amount: '10' } }));
+  assert.match(review, /1\. usdc\.approve\(vault, 10000000\)/);
+  assert.match(review, /2\. vault\.deposit\(10000000\)/);
+  assert.match(review, /USDC -10/);
 });
