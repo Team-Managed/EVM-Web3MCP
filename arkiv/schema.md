@@ -16,7 +16,7 @@ One per ENS name and publisher wallet. Tagged `arkiv.schema = "web3mcp.listing"`
 | `digest` | `str` | yes | hosts, after the query | The name's `org.web3mcp.digest` ENS record when the listing was written |
 | `t.<term>` | `bool` | yes | every search, as `EXISTS(t.<term>)` | `true`; one per search term, up to 28 |
 
-The terms are the manifest's `keywords`, then words from its tool names, contract aliases and descriptions. An entity holds at most 32 attributes; the tag and three columns use 4, which leaves 28 for terms. AgentSwap's live listing has 24, all from its tool names and descriptions: `eth, price, quote, usdc, balance, swap, usd, current, dollar, chainlink, …`. With the keywords in its [fixture](../spec/fixtures/valid/agentswap.web3mcp.eth.json), it fills all 28: `swap, exchange, trade, convert, dex, uniswap, eth, ether, usdc, stablecoin, quote, price, …`.
+The terms are the manifest's `keywords`, then words from its tool names, contract aliases and descriptions. An entity holds at most 32 attributes; the tag and three columns use 4, which leaves 28 for terms. The AgentSwap listing uses all 28: its keywords `swap, exchange, trade, convert, dex, uniswap, eth, ether, usdc, stablecoin, quote, price`, then words from its tools such as `chainlink` and `dollar`.
 
 **Owner:** the publisher's wallet, which signs with `web3mcp-publish index`. Only that wallet can extend or delete the listing. Anyone can write a listing that claims any name, even one that copies a real name's digest. So a listing only points to a name: hosts keep it only while its `digest` is keccak256 of the name's manifest record on ENS, and show the terms and description from that manifest, never from the listing. The listing carries no text of its own.
 

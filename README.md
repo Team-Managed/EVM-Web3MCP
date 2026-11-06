@@ -6,6 +6,20 @@ Today an AI agent can only use a smart contract if someone writes custom code fo
 
 Built at ETHGlobal Mumbai 2026. Sibling of [Solana-Web3MCP](https://github.com/Team-Managed/Solana-Web3MCP).
 
+## An onchain web for AI agents
+
+People got the web: sites, names that lead to them, and search engines that find them by what they do. Web3MCP builds the same pieces for AI agents, on chain:
+
+| The web | Web3MCP's agent web |
+|---|---|
+| A site and what it offers | A smart contract and its manifest of tools |
+| DNS: a name leads to the site | ENS: the name holds the manifest, with a digest that proves it's intact |
+| A search engine: find sites by what they do | [Arkiv](#search-on-arkiv): a search engine for agents, where any protocol lists itself and any agent searches by goal |
+| A browser | One generic MCP server, in Claude Code or Codex |
+| Signing in and paying | Your own wallet, which signs every write |
+
+No company runs a server in the middle. Protocols publish to ENS and Arkiv with their own wallets, and agents read both chains directly. The only software involved is the MCP server and signing page on your own machine. Nobody else can remove a protocol's listing, and a listing can't change what an agent runs: search only points to an ENS name, and the agent checks that name on chain before it uses it.
+
 ## How it works
 
 1. **Publish.** The protocol stores a manifest in text records on its own ENS name, such as `uniswap.eth`. With ENSv2 per-record roles, a release key can update the tools but nothing else on the name.

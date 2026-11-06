@@ -1,6 +1,6 @@
 # Why Arkiv
 
-Web3MCP lets any protocol publish tools for AI agents under its ENS name, with no one in the middle. Search is the one part that needs a shared database: an agent with a goal ("swap my ETH") but no name has to find candidate protocols somewhere.
+Web3MCP builds an onchain web for AI agents. Any protocol publishes tools under its ENS name, with no one in the middle, and agents act through the user's own wallet. A web also needs a search engine, and that's the one part that needs a shared database: an agent with a goal ("swap my ETH") but no name has to find candidate protocols somewhere. We built that search engine on Arkiv, so finding a protocol is on chain too.
 
 ## What users would lose with Postgres
 
