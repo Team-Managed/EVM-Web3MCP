@@ -82,3 +82,29 @@ test('tools discovered from ENS run reads and prepare writes', async () => {
   assert.match(review, /2\. vault\.deposit\(10000000\)/);
   assert.match(review, /USDC -10/);
 });
+
+test('a failed wallet lookup is retried, and reads never wait on it', async () => {
+  const chain = fakeClient(
+    vaultChain({
+      read: (fn) => ({ decimals: 6, balanceOf: 10_500000n, allowance: 0n })[fn],
+      simulate: (calls) => ({ results: calls.map(() => ({ status: 'success' })), assetChanges: [] }),
+    }),
+  );
+  let lookups = 0;
+  const flaky = {
+    ...chain,
+    getEnsAddress: async () => {
+      lookups += 1;
+      if (lookups === 1) throw new Error('block not found');
+      return '0x00000000000000000000000000000000000000AA';
+    },
+  } as typeof chain;
+  const { client } = await connect({ client: flaky, account: 'riya.eth' });
+  await call(client, 'discover', { name: 'vault.web3mcp-demo.eth' });
+
+  // The first lookup fails, but a read doesn't need the wallet and still works.
+  assert.equal(textOf(await call(client, 'vault_get_balance', { owner: '0x00000000000000000000000000000000000000aa' })), '10.5 USDC');
+  // The failure isn't cached, so the write's own lookup succeeds.
+  const review = await call(client, 'tx_vault_deposit', { amount: '10' });
+  assert.ok(!review.isError, textOf(review));
+});

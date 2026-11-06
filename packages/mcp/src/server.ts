@@ -44,6 +44,16 @@ export function createServer({ client, account, manifestDir }: ServerOptions = {
   const namespaces = new Map<string, string>();
   let sender: Promise<`0x${string}`> | undefined;
 
+  // Resolve the account once, but forget a failure (a flaky RPC, a typo) so the next call retries.
+  function senderAddress(chain: ChainClient): Promise<`0x${string}` | undefined> {
+    if (!account) return Promise.resolve(undefined);
+    sender ??= resolveAddress(chain, account).catch((e) => {
+      sender = undefined;
+      throw e;
+    });
+    return sender;
+  }
+
   async function load(ensName: string): Promise<{ manifest: Manifest; protocol?: Protocol; source: string }> {
     const local = manifestDir ? await readFile(join(manifestDir, `${ensName}.json`), 'utf8').catch(() => undefined) : undefined;
     if (local !== undefined) {
@@ -60,13 +70,14 @@ export function createServer({ client, account, manifestDir }: ServerOptions = {
     const { tool, protocol } = discovered.get(exposed)!;
     if (!client || !protocol) return fail(`${exposed} can't run without a chain connection.`);
     try {
-      if (account) sender ??= resolveAddress(client, account);
-      const from = await sender;
       if (tool.kind === 'read') {
+        // Reads need the account only for a $sender argument, and the SDK reports that case itself.
+        const from = await senderAddress(client).catch(() => undefined);
         const result = await executeRead(client, protocol, tool.name, input, from);
         return text(typeof result === 'string' ? result : JSON.stringify(result, null, 2));
       }
-      return text(review(exposed, await prepareWrite(client, protocol, tool.name, input, from), protocol));
+      const prepared = await prepareWrite(client, protocol, tool.name, input, await senderAddress(client));
+      return text(review(exposed, prepared, protocol));
     } catch (e) {
       return fail(message(e));
     }
