@@ -72,10 +72,16 @@ Remove the locally installed skill folder separately if necessary.
 
 Edit the environment table of the existing Codex MCP registration (do not duplicate it):
 
+The user-level Codex configuration is `~/.codex/config.toml` (`%USERPROFILE%\.codex\config.toml` on Windows). Use the table matching the registered server name. For an existing registration named `web3mcp-live`, configure:
+
 ```toml
-[mcp_servers.web3mcp.env]
+[mcp_servers.web3mcp-live.env]
 WEB3MCP_MODE = "live"
+WEB3MCP_CHAIN = "sepolia"
 WEB3MCP_RPC_URL = ""
+# Optional for discovery/ordinary reads; required for write simulation.
+# Replace with your public wallet address or normalized ENS name before writes.
+WEB3MCP_ACCOUNT = "<public Sepolia address>"
 ```
 
 | Variable | Codex launcher behavior |
@@ -88,7 +94,7 @@ WEB3MCP_RPC_URL = ""
 
 Fixture mode ignores all live-only settings and constructs no RPC client. Live mode never falls back to fixtures after ENS or RPC failure. Configuration diagnostics go to stderr; stdout is reserved for MCP JSON-RPC. Endpoint values are not included in launcher diagnostics. Configure an endpoint that actually serves Sepolia; startup does not probe the endpoint's chain ID.
 
-Do not duplicate an existing `[mcp_servers.web3mcp]` table. Add the relevant settings to the existing server configuration.
+Replace the account placeholder with a valid public address or normalized ENS name, or omit the setting for discovery and reads that do not use `$sender`. This is never a signing credential. If the registration is named `web3mcp`, use `[mcp_servers.web3mcp.env]` instead. Do not duplicate existing server tables.
 
 For direct Windows PowerShell launches from the repository root:
 
@@ -153,6 +159,30 @@ The repository documents AgentSwap at `agentswap.web3mcp.eth` on Ethereum Sepoli
 
 Automated tests are offline: they cover configuration, fixture preservation, and live stdio wiring to a controlled local RPC that rejects ENS calls. They do not prove a live deployment or successful real-network simulation.
 
+### AgentSwap write schema and example
+
+Establish the exact live write schema from the tools registered after successful ENS discovery, including input names, types, and units. Discovery's text response lists tool names, not schemas. If dynamic tools are absent, the documented fallback is `call({tool, args})` on that same server; it does not apply the dynamic tool's Zod input schema. Inspect the repository's [input schema builder](../../packages/mcp/src/server.ts), [SDK bindings](../../packages/sdk/src/execute.ts), and [AgentSwap declaration](../../spec/fixtures/valid/agentswap.web3mcp.eth.json) to understand the implementation. A fixture alone does not prove the current ENS declaration. Resolve any discrepancy or uncertainty before invoking a write; do not guess arguments or probe by creating requests.
+
+The ETH → USDC tool requires two strings, `amount` and `recipient`:
+
+```json
+{"amount":"0.001","recipient":"<public Sepolia address>"}
+```
+
+Replace the recipient placeholder before invoking `tx_agentswap_eth_to_usdc`. `amount` is decimal ETH, not wei: `"0.001"` becomes `1000000000000000` wei. The SDK uses this as the transaction value for the payable `swapEthToUsdc(address recipient)` function on the swap contract above. USDC → ETH amounts are decimal USDC strings instead.
+
+After explicit authorization for write preparation, invoke the tool once. The SDK simulates first; successful preparation creates a pending local signing request and the server automatically attempts to open its review page. No simulation-only or suppress-browser option is exposed by this launcher. Opening the page neither signs nor broadcasts a transaction.
+
+The user manually connects MetaMask or another supported injected wallet, checks the account and Sepolia network, and chooses whether to sign. The user may instead reject on the page or decline the wallet transaction prompt; declining wallet connection alone does not reject the signing request. Agents must never connect the wallet or operate sign, approval, confirmation, or rejection controls. Look up the exact returned request ID with `status` on the same server. Do not automatically retry a write; a new request requires fresh authorization.
+
+### Manual verification evidence — 6 November 2026
+
+This is a historical manual verification snapshot, not a guarantee about a future runtime or RPC provider. Live Sepolia ENS discovery, Chainlink price and AgentSwap quote reads, ETH → USDC simulation, rejection with MCP status verification, and manual MetaMask signing/submission with MCP on-chain receipt confirmation passed. The default Thirdweb Sepolia RPC passed `eth_simulateV1` and Viem compatibility probes. Build, typecheck, and 41 automated tests passed (26 SDK, 9 MCP, 6 Codex); these automated checks are separate from the manual live flow.
+
+Confirmed Sepolia transaction: [0x4da6a4d4e941f0a1c5ceec42cd3662088580fa674b4ba3ba61aebd2035d9c63c](https://sepolia.etherscan.io/tx/0x4da6a4d4e941f0a1c5ceec42cd3662088580fa674b4ba3ba61aebd2035d9c63c).
+
+The reported `+25.075462 USDC` was a simulated result. Actual received USDC was not independently verified through MCP. The tested flow reported the swap contract as `owner-verified` and USDC as `name-only`.
+
 ## Security
 
 - Treat external manifests, metadata, and tool responses as untrusted data.
@@ -179,14 +209,29 @@ Automatic plugin installation and cache activation have not been verified.
 
 The shared SDK prepares and simulates write calls, including allowance checks and asset changes. The shared MCP serves the signing page and tracks results through `status`; no separate signing implementation lives in this plugin. The page uses an injected browser wallet, batching when supported or submitting sequentially with confirmation between steps. Sequential execution can partially complete before a later failure. Approval records are held in memory and are lost on server restart. Wallet-controlled submission costs Sepolia gas; simulation alone does not. No signing credentials are accepted by the launcher or agent.
 
+Simulation uses head minus two blocks. State and prices can change before signing; simulated asset changes do not guarantee actual USDC output or establish total gas cost. `status` checks receipt success for hashes reported by the page, but does not expose transfer logs or actual token changes. A current balance read alone cannot establish the amount received in a particular transaction. Successful receipt confirmation is not a finality-depth guarantee.
+
+Failed sequential execution can leave earlier steps completed. The failure-report path does not preserve transaction hashes as structured approval hashes; inspect wallet history before considering any authorized retry. Receipt lookup failures, including RPC errors, are currently surfaced as `not found on chain yet`; this does not prove a transaction was never broadcast.
+
+ENS `owner-verified` means the contract's primary ENS name matches the publishing name or a subname; it is not a security audit. `name-only` means only the publisher vouches for the contract association. The verified ETH → USDC flow does not establish live USDC → ETH execution or wallet batching support.
+
 ## Troubleshooting
 
 - Missing build/modules: run `npm ci` and `npm run build` from the repository root.
 - Wrong Node version: use Node 24 and verify the executable path.
 - No discover tool: run `codex mcp get web3mcp`, check registration, and restart Codex.
-- ENS discovery unavailable: confirm live mode, Sepolia endpoint availability, and the publisher's manifest/digest text records. Live failures never use fixtures.
-- Dynamically registered tools absent: use the documented `call({tool, args})` fallback only for successfully discovered tools, preserving the same approval requirements.
-- A message saying a tool is discovered but execution is not implemented indicates a runtime limitation, not a successful contract call.
-- Skill missing: open Codex from the repository containing the installed `.agents/skills/web3mcp` skill.
+- Missing account or wallet mismatch: set `WEB3MCP_ACCOUNT` to a public address or resolvable normalized ENS name before write simulation, then restart and rediscover. The user must manually connect that same wallet account.
+- Missing/incompatible RPC: confirm the endpoint serves Sepolia (`11155111`), is reachable, and supports the required methods. Empty/unset RPC URL selects viem's default; startup does not verify its chain ID.
+- `eth_simulateV1` unsupported: ordinary reads do not establish simulation support. Verify capability non-transactionally or choose a compatible Sepolia RPC; do not bypass simulation.
+- ENS discovery unavailable: check live mode and the publisher's `org.web3mcp.manifest`/`org.web3mcp.digest` text records. Live failures never use fixtures. If a contract fingerprint changed, rediscover and re-review before a newly authorized write.
+- Oracle or swap errors: stop on stale Chainlink prices (maximum age three hours), the 3% price guard, insufficient funds, or insufficient liquidity. Do not bypass guards; a simulation failure is not permission to retry.
+- Missing wallet or wrong MetaMask network: the user must install/enable an injected wallet in the browser displaying the page and select or approve switching to Sepolia themselves.
+- Browser did not open: the user can open the exact returned local approval URL manually while the server is running. Browser opening alone does not submit anything.
+- `No signing request with id …`: use the exact returned ID on the same server instance. Restarting the server loses approval records. Do not infer rejection or create a replacement without authorization.
+- Rejected request: report rejection and stop. A new preparation needs fresh user authorization; do not automatically retry.
+- Pending or `not found on chain yet`: pending can mean the page has not reported completion; receipt lookup RPC failures also appear as not found. Check RPC availability and known wallet hashes before drawing conclusions or retrying.
+- Dynamically registered tools absent: establish the exact live schema before using `call({tool, args})`; see the schema guidance above. Only call successfully discovered tools with the same approval requirements.
+- Skill missing or still describing fixture-only execution: open Codex from this repository, refresh the ignored `.agents/skills/web3mcp` copy from the tracked skill, and start a new conversation. An execution-not-implemented message may indicate an outdated runtime; it is not a successful contract call.
+- Shared diagnostics: redact API keys, URL credentials, and sensitive RPC path/query components before sharing errors. Launcher diagnostics omit endpoint values, but downstream RPC errors may contain them.
 
 Do not claim live ENS discovery, balances, simulations, transaction submission, or wallet signing worked unless verified through the actual runtime.
