@@ -331,10 +331,13 @@ import { discover, executeRead, prepareWrite } from "@web3mcp/evm";
 
 const client = createPublicClient({ chain: sepolia, transport: http() });
 const protocol = await discover(client, "agentswap.web3mcp.eth");
-const quote = await executeRead(client, protocol, "quote_eth_to_usdc", { amount: "0.01" });
+const quote = await executeRead(client, protocol, "quote_eth_to_usdc", { amount: "0.01" }); // such as "250.663701 USDC"
+const minUsdc = (parseFloat(String(quote)) * 0.99).toFixed(6); // accept about 1% less
+
+const wallet = "0xYourWallet";
 const write = await prepareWrite(client, protocol, "eth_to_usdc", {
-  amount: "0.01", min_usdc: String(quote), recipient: "0xYourWallet"
-}, "0xYourWallet");`}</CodeBlock></div>
+  amount: "0.01", min_usdc: minUsdc, recipient: wallet
+}, wallet);`}</CodeBlock></div>
                 <p className="mt-4 text-xs leading-5 text-[#6D28D9]">The SDK never signs. Pass the returned calls to the user&apos;s wallet.</p>
               </article>
               <article className="border border-[#A7F3D0] border-t-4 border-t-[#059669] bg-[#ECFDF5] p-6">

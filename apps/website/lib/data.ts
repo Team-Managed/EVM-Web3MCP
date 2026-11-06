@@ -137,7 +137,7 @@ export const GUARANTEES: GuaranteeCard[] = [
     tag: "Air-Gapped",
     colorAccent: "bg-ink",
     title: "Local Wallet Boundary",
-    description: "Writes bridge to a local approval page. Works with MetaMask, WalletConnect, and EIP-5792 batching.",
+    description: "Writes bridge to a local approval page. Works with browser wallets such as MetaMask and Rabby, with EIP-5792 batching.",
     specReference: "approve-ui",
   },
   {
