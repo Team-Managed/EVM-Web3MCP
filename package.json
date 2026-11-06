@@ -12,7 +12,7 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "typecheck": "tsc -p tsconfig.json && tsc -p packages/approve-ui",
-    "test": "npm run build && npm run typecheck && npm test --workspaces --if-present"
+    "test": "npm run build && npm run typecheck && npm test --workspaces --if-present && node --test \"plugins/codex/test/*.test.ts\""
   },
   "engines": {
     "node": ">=22"
