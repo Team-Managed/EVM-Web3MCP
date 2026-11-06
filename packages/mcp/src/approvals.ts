@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
-import type { PreparedWrite, Protocol } from '@web3mcp/evm';
+import type { PreparedCall, PreparedWrite, Protocol } from '@web3mcp/evm';
 
 export type ApprovalStatus = 'pending' | 'submitted' | 'rejected' | 'failed';
 
@@ -13,7 +13,7 @@ export interface Approval {
   protocol: string;
   tool: string;
   account: `0x${string}`;
-  calls: { to: `0x${string}`; data: `0x${string}`; value?: string; gas?: string; description: string }[];
+  calls: ({ to: `0x${string}`; data: `0x${string}`; value?: string; gas?: string } & Pick<PreparedCall, 'description' | 'kind' | 'contract' | 'method' | 'args'>)[];
   assetChanges: PreparedWrite['assetChanges'];
   trust: { alias: string; address: string; trust: string }[];
   status: ApprovalStatus;
@@ -62,6 +62,10 @@ export class Approvals {
         value: c.value?.toString(),
         gas: c.gas?.toString(),
         description: c.description,
+        kind: c.kind,
+        contract: c.contract,
+        method: c.method,
+        args: c.args,
       })),
       assetChanges: prepared.assetChanges,
       trust: Object.entries(protocol.contracts).map(([alias, c]) => ({ alias, address: c.address, trust: c.trust })),

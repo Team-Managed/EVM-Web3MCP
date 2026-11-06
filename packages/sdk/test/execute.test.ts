@@ -80,7 +80,8 @@ test('amounts with more decimals than the token are refused, not rounded', async
   const { client, protocol } = await setup({ read: reads(), simulate: simulateOk });
   await assert.rejects(prepareWrite(client, protocol, 'deposit', { amount: '0.0000001' }, RIYA), /more decimal places than usdc supports \(6\)/);
   const exact = await prepareWrite(client, protocol, 'deposit', { amount: '10.123456' }, RIYA);
-  assert.match(exact.calls.at(-1)!.description, /deposit\(10123456\)/);
+  assert.match(exact.calls.at(-1)!.description, /deposit\(10\.123456 USDC\)/);
+  assert.ok(exact.calls.at(-1)!.data.endsWith((10_123456).toString(16).padStart(64, '0')));
 });
 
 const swapManifest = JSON.parse(readFileSync(new URL('../../../spec/fixtures/valid/agentswap.web3mcp.eth.json', import.meta.url), 'utf8'));
@@ -99,6 +100,7 @@ async function swapSetup(read: FakeChain['read']) {
       ),
       [SWAP_USDC.toLowerCase()]: codeWith('function balanceOf(address)', 'function decimals()', 'function approve(address,uint256)'),
     },
+    addresses: { 'riya.eth': RIYA },
     read,
     simulate: (calls) => ({ results: calls.map(() => ({ status: 'success' })), assetChanges: [] }),
   });
@@ -123,4 +125,13 @@ test('an ether input is sent as the call value', async () => {
     prepareWrite(client, protocol, 'eth_to_usdc', { amount: '0.0000000000000000001', recipient: RIYA }, RIYA),
     /more decimal places than ETH supports \(18\)/,
   );
+});
+
+test('each step says what it does in readable parts', async () => {
+  const { client, protocol } = await swapSetup(() => undefined);
+  const prepared = await prepareWrite(client, protocol, 'eth_to_usdc', { amount: '0.001', recipient: 'riya.eth' }, RIYA);
+  const [step] = prepared.calls;
+  assert.equal(step.description, 'swap.swapEthToUsdc(riya.eth)');
+  assert.deepEqual([step.kind, step.contract, step.method], ['call', 'swap', 'swapEthToUsdc']);
+  assert.deepEqual(step.args, [{ name: 'recipient', value: 'riya.eth', address: RIYA }]);
 });
