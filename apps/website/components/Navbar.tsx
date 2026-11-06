@@ -51,9 +51,7 @@ export function Navbar() {
               <Github className="w-4 h-4" />
             </a>
             <a
-              href="https://github.com/Team-Managed/EVM-Web3MCP/blob/main/spec/SPEC.md"
-              target="_blank"
-              rel="noreferrer"
+              href="/docs"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#FFFFFF] text-[#111316] text-xs font-sans font-bold uppercase tracking-wider hover:bg-[#FAF9F6] transition-all shadow-sm"
             >
               <span>Documentation</span>
@@ -89,7 +87,7 @@ export function Navbar() {
           ))}
           <div className="pt-2 flex flex-col gap-2">
             <a
-              href="https://github.com/Team-Managed/EVM-Web3MCP/blob/main/spec/SPEC.md"
+              href="/docs"
               onClick={() => setMobileMenuOpen(false)}
               className="w-full text-center px-4 py-2.5 rounded-full bg-[#FFFFFF] text-[#111316] text-xs font-sans font-bold uppercase tracking-wider"
             >
