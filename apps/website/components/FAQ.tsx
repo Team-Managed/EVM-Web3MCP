@@ -16,7 +16,7 @@ export function FAQ() {
     <section id="faq" className="py-24 bg-[#FAF9F6] border-b border-[#E2DFD7]">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-14 text-center">
-          <div className="inline-flex items-center gap-2 font-mono text-xs text-[#E57E25] uppercase tracking-widest mb-3">
+          <div className="inline-flex items-center gap-2 font-sans text-xs text-[#E57E25] uppercase tracking-widest mb-3 font-semibold">
             <span className="w-2.5 h-2.5 bg-[#E57E25]" />
             <span>Questions & Answers</span>
           </div>
@@ -40,10 +40,10 @@ export function FAQ() {
               >
                 <button
                   onClick={() => toggle(idx)}
-                  className="w-full text-left p-6 flex items-center justify-between gap-4 font-mono text-sm sm:text-base text-[#111316] font-semibold"
+                  className="w-full text-left p-6 flex items-center justify-between gap-4 font-sans text-sm sm:text-base text-[#111316] font-semibold tracking-tight"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-[#E57E25] font-mono">0{idx + 1}</span>
+                    <span className="text-xs text-[#E57E25] font-sans font-bold">0{idx + 1}</span>
                     <span>{item.question}</span>
                   </div>
                   <div className="p-1 border border-[#E2DFD7] text-[#111316]">

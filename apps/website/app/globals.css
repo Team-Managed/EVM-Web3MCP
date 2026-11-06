@@ -30,11 +30,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Enforce strict sharp geometry - strictly no rounded pills */
-*, ::before, ::after {
-  border-radius: 0px !important;
-}
-
 /* Editorial Serif Utility matching Handhold exact typography */
 .font-editorial {
   font-family: "Libre Baskerville", "Newsreader", "Lora", Baskerville, "Times New Roman", serif;
@@ -63,3 +58,14 @@ body {
   background-image: radial-gradient(rgba(22, 24, 27, 0.07) 1px, transparent 1px);
   background-size: 6px 6px;
 }
+
+/* Hide scrollbars across all browsers */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+

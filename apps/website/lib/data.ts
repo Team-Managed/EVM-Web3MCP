@@ -2,9 +2,8 @@ import type { NavItem, ProtocolStep, TrustInvariant, GuaranteeCard, FaqItem } fr
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "How It Works", href: "#how-it-works" },
-  { label: "Packages", href: "#offerings" },
-  { label: "Security", href: "#guarantees" },
   { label: "Integrate", href: "#choose-path" },
+  { label: "Security", href: "#guarantees" },
   { label: "FAQ", href: "#faq" },
 ];
 
@@ -162,36 +161,36 @@ export const FAQ_ITEMS: FaqItem[] = [
     question: "What is Web3MCP?",
     category: "Architecture",
     answer:
-      "An open EVM standard for smart contracts to publish tool manifests under their ENS names, allowing AI hosts to safely discover, read, and simulate contract calls.",
+      "Web3MCP is a draft open EVM standard for publishing smart-contract tool manifests under an ENS name. Its protocol design covers discovery, contract reads, write simulation, and user-approved signing through one generic MCP host.",
   },
   {
     question: "Do protocols have to host an MCP server?",
     category: "Architecture",
     answer:
-      "No. Web3MCP is completely serverless for protocols. You only publish text records to ENS. The agent runtime runs its own generic host using the @web3mcp/evm SDK.",
+      "No. The protocol is designed to be serverless for publishers: publish the manifest and digest as ENS text records, then let a generic host discover the tools. The current @web3mcp/evm package provides strict manifest validation; the remaining discovery and execution pieces are still being implemented.",
   },
   {
     question: "Can an AI agent sign transactions or move funds?",
     category: "Security",
     answer:
-      "No. The agent never has access to private keys. Writes are simulated and routed to a local browser signing page for human confirmation.",
+      "No. The model must never receive or use a private key. In the protocol design, writes are validated, simulated with eth_simulateV1, shown with decoded calls and balance deltas, and handed to the user’s wallet for approval. The signing UI is part of the planned execution flow, not a claim that every integration is complete today.",
   },
   {
     question: "Why is ENS the source of truth?",
     category: "ENS",
     answer:
-      "ENS provides established decentralized domain ownership. Using ENSv2 permissioned roles, a deployer key can update tool manifests without risking domain ownership.",
+      "The protocol uses the publisher’s ENS name as the authoritative registry. org.web3mcp.manifest stores the exact JSON and org.web3mcp.digest stores its keccak256 digest. An index such as Arkiv may help agents find names, but a host must re-read and verify ENS before using a manifest.",
   },
   {
     question: "What does 'Owner-Verified' mean?",
     category: "Security",
     answer:
-      "If a contract's primary name reverse-resolves to the publishing ENS domain, it is marked Owner-Verified. Otherwise, it is flagged Name-Only and requires manual confirmation.",
+      "A contract is Owner-Verified when its ENS primary name points back to the publishing name. If that reverse relationship is absent, the contract is labeled Name-Only: the publishing ENS name remains the authority, but the host should request extra confirmation.",
   },
   {
-    question: "Which chains and wallets are supported?",
+    question: "What is implemented today?",
     category: "Integration",
     answer:
-      "Any EVM chain (Mainnet, Sepolia, Arbitrum, Base, OP). Any EIP-1193 or WalletConnect wallet is supported, with EIP-5792 batching where available.",
+      "The SDK currently validates manifests against the strict v0.1-evm schema, including contract aliases, tool kinds, ABI signatures, argument counts, mutability, and bindings. ENS discovery, direct reads, write preparation, simulation, and wallet handoff are protocol-defined next steps rather than completed features. The supported chain and wallet matrix will be documented as those integrations ship.",
   },
 ];
