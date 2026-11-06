@@ -6,9 +6,9 @@ const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'expected a 0x-prefixed 
 const binding = z.string().min(1).max(100);
 
 const input = z.strictObject({
-  type: z.enum(['address', 'amount', 'uint256', 'bool', 'bytes32', 'string']),
+  type: z.enum(['address', 'amount', 'ether', 'uint256', 'bool', 'bytes32', 'string']),
   description: z.string().max(200).optional(),
-  // An amount is a human decimal, scaled by this contract's decimals().
+  // An amount is a human decimal, scaled by this contract's decimals(). An ether input is one in ETH (18 decimals).
   token: identifier.optional(),
 });
 
@@ -30,11 +30,18 @@ const common = {
   inputs: z.record(identifier, input).default({}),
 };
 
-// Formats a read's numeric result with this contract's decimals(), such as "10.5 USDC".
-const output = z.strictObject({ decimalsFrom: identifier, symbol: z.string().max(12).optional() });
+// Formats a read's numeric result, such as "10.5 USDC": with a contract's decimals(), or a fixed count such as 18 for ETH.
+const output = z
+  .strictObject({
+    decimalsFrom: identifier.optional(),
+    decimals: z.number().int().min(0).max(36).optional(),
+    symbol: z.string().max(12).optional(),
+  })
+  .refine((o) => (o.decimalsFrom === undefined) !== (o.decimals === undefined), 'set exactly one of decimalsFrom or decimals');
 
 const tool = z.discriminatedUnion('kind', [
-  z.strictObject({ ...common, kind: z.literal('read'), call, output: output.optional() }),
+  // dryRun: the function changes state when sent, like Uniswap's Quoter, so it may only ever run as an eth_call.
+  z.strictObject({ ...common, kind: z.literal('read'), call, output: output.optional(), dryRun: z.boolean().optional() }),
   z.strictObject({ ...common, kind: z.literal('write'), steps: z.array(step).min(1).max(4) }),
 ]);
 
@@ -94,7 +101,7 @@ function checkReferences(m: Manifest): string[] {
     }
 
     const calls = t.kind === 'read' ? [t.call] : t.steps.flatMap((s) => ('call' in s ? [s.call] : []));
-    if (t.kind === 'read' && t.output) checkAlias(t.output.decimalsFrom, `${at}.output`);
+    if (t.kind === 'read' && t.output?.decimalsFrom) checkAlias(t.output.decimalsFrom, `${at}.output`);
     if (t.kind === 'write') {
       for (const s of t.steps) {
         if (!('approve' in s)) continue;
@@ -118,7 +125,11 @@ function checkReferences(m: Manifest): string[] {
         continue;
       }
       const readOnly = item.stateMutability === 'view' || item.stateMutability === 'pure';
-      if (t.kind === 'read' && !readOnly) issues.push(`${at}: read tools may only call view or pure functions`);
+      // Without dryRun, a write declared as a read by mistake would "succeed" while nothing happened.
+      const dryRun = t.kind === 'read' && t.dryRun && item.stateMutability === 'nonpayable';
+      if (t.kind === 'read' && !readOnly && !dryRun) {
+        issues.push(`${at}: read tools may only call view or pure functions, or non-payable ones with "dryRun": true`);
+      }
       if (t.kind === 'write' && readOnly) issues.push(`${at}: write steps must call state-changing functions`);
       if (c.value !== undefined && item.stateMutability !== 'payable') issues.push(`${at}: value sent to non-payable ${item.name}`);
       if (c.args.length !== item.inputs.length) {

@@ -35,14 +35,15 @@ The exact schema is `packages/sdk/src/manifest.ts`. Valid and invalid examples a
 
 ### Tools
 
-- **Read tool** (`"kind": "read"`): one `call` to a `view` or `pure` function. An optional `output` (`{ "decimalsFrom": "usdc", "symbol": "USDC" }`) formats a numeric result with that contract's `decimals()`, so agents see `10.5 USDC` instead of `10500000`.
+- **Read tool** (`"kind": "read"`): one `call` to a `view` or `pure` function, run with `eth_call`. An optional `output` formats a numeric result so agents see `10.5 USDC` instead of `10500000`: `{ "decimalsFrom": "usdc", "symbol": "USDC" }` uses that contract's `decimals()`, and `{ "decimals": 18, "symbol": "ETH" }` a fixed count.
+  - **Dry run** (`"dryRun": true`): the read may call a non-payable, state-changing function, such as Uniswap's Quoter, which runs a swap and undoes it to return an exact quote. It still only runs as `eth_call`, so nothing is sent or saved. Without the flag such a call fails validation, so a write declared as a read by mistake can't seem to succeed.
 - **Write tool** (`"kind": "write"`): 1 to 4 `steps`. Each step is either a `call` to a state-changing function, or an `approve` of an ERC-20 `token` to a `spender`.
 
 A `call` names a contract alias, a human-readable function signature (`function deposit(uint256 amount)`), and one argument binding per function input. An optional `value` is allowed only for `payable` functions.
 
 ### Inputs
 
-Each tool declares named inputs: `address` (an address or ENS name), `amount` (a decimal string, scaled by the `decimals()` of the input's `token` contract), `uint256`, `bool`, `bytes32` or `string`.
+Each tool declares named inputs: `address` (an address or ENS name), `amount` (a decimal string, scaled by the `decimals()` of the input's `token` contract), `ether` (a decimal string in ETH, 18 decimals, for example a payable call's `value`), `uint256`, `bool`, `bytes32` or `string`.
 
 ### Bindings
 
@@ -58,7 +59,7 @@ Planned: `abiEncode(...)` for nested calldata such as Uniswap's Universal Router
 
 ## 3. Discovery and trust
 
-1. Resolve the name and read both records. Check the digest, then validate the manifest. Unknown fields, unknown aliases, undeclared inputs, wrong argument counts, and a read tool calling a state-changing function all fail discovery.
+1. Resolve the name and read both records. Check the digest, then validate the manifest. Unknown fields, unknown aliases, undeclared inputs, wrong argument counts, and a read tool calling a state-changing function without `dryRun` all fail discovery.
 2. For each contract: confirm code exists, that every declared function selector is present, and record a code fingerprint (and the EIP-1967 implementation for proxies).
 3. Trust level per contract. The manifest under the name is the forward link, because only the name's owner can list a contract there.
    - **Owner-verified**: the contract's ENS primary name is the publishing name or one of its subnames. The contract's owner sets it through the reverse registrar. ENS only reports a primary name whose address record points back to the contract, so a protocol with several contracts points its name at one and gives each other contract a subname, such as `quoter.uniswap.eth`.
@@ -66,7 +67,11 @@ Planned: `abiEncode(...)` for nested calldata such as Uniswap's Universal Router
 
 ## 4. Writes
 
-The host builds every step, simulates them together (`eth_simulateV1`), and shows the user the decoded calls and exact balance changes. It re-checks code fingerprints just before sending, then asks the user's wallet to sign, batched with EIP-5792 `wallet_sendCalls` where supported. The model never holds a key.
+The host builds every step, skips approvals the wallet already gave, re-checks code fingerprints since discovery, and simulates the steps together (`eth_simulateV1`) two blocks back, so load-balanced public RPCs agree on the block. The model never holds a key.
+
+The MCP host then opens a local signing page, `http://127.0.0.1:<port>/approve/<id>`, showing the trust levels, each step and the simulated balance changes. The user connects their own wallet, which must be the account the write was simulated for, and signs. The page asks for one prompt with EIP-5792 `wallet_sendCalls`; a wallet that can't batch gets one transaction at a time, each confirmed before the next. The page reports the transaction hashes, and the host re-checks them on chain.
+
+The signing page answers only requests addressed to its own `127.0.0.1` host and port, accepts results only from its own origin, and uses an unguessable id per request.
 
 ## 5. Exposure over MCP
 
@@ -74,6 +79,7 @@ The generic MCP server starts with these tools:
 
 - `discover(name)` loads a protocol and registers its tools, then sends `notifications/tools/list_changed`.
 - `call(tool, args)` runs a discovered tool, for clients that do not refresh their tool list.
+- `status(id)` reports whether the user signed a write on the signing page and whether it confirmed on chain, waiting up to 25 seconds.
 - `search(query)` (planned) finds published names by what they can do, through the Arkiv index (section 6).
 
 Discovered tools are named `<namespace>_<tool>` for reads and `tx_<namespace>_<tool>` for writes. The namespace is the first label of the ENS name. Reads carry `readOnlyHint: true`. Every description is prefixed with its publisher, because it is untrusted text.

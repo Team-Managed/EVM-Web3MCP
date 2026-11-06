@@ -1,4 +1,5 @@
 import {
+  BaseError,
   encodeFunctionData,
   erc20Abi,
   formatUnits,
@@ -26,6 +27,8 @@ export interface PreparedCall {
   to: Address;
   data: Hex;
   value?: bigint;
+  /** Gas limit to suggest to the wallet, for calls near the per-transaction cap. */
+  gas?: bigint;
   /** Readable form, such as `usdc.approve(vault, 10000000)`. */
   description: string;
 }
@@ -65,6 +68,7 @@ export async function executeRead(
   const ctx = new Bindings(client, protocol, tool, input, account);
   const fn = toFunction(tool.call.function);
   const args = await ctx.args(tool.call.args, fn.inputs);
+  // An eth_call, so a dryRun function runs for real on the node but nothing is sent or saved.
   const result = await client.readContract({
     address: protocol.contracts[tool.call.contract].address,
     abi: [fn],
@@ -72,7 +76,7 @@ export async function executeRead(
     args,
   });
   if (tool.output && typeof result === 'bigint') {
-    const decimals = await ctx.decimals(tool.output.decimalsFrom);
+    const decimals = tool.output.decimals ?? (await ctx.decimals(tool.output.decimalsFrom!));
     return `${formatUnits(result, decimals)}${tool.output.symbol ? ` ${tool.output.symbol}` : ''}`;
   }
   return jsonSafe(result);
@@ -91,6 +95,9 @@ export async function prepareWrite(
   await assertUnchanged(client, protocol);
 
   const ctx = new Bindings(client, protocol, tool, input, account);
+  // Public RPCs spread requests across nodes, and a node one block behind rejects the newest block number
+  // ("block not found"). Reading and simulating two blocks back keeps every node in agreement.
+  const blockNumber = (await client.getBlockNumber({ cacheTime: 0 })) - 2n;
   const aliasOf = (address: Address) =>
     Object.entries(protocol.contracts).find(([, c]) => c.address === address)?.[0] ?? address;
   const calls: PreparedCall[] = [];
@@ -99,7 +106,13 @@ export async function prepareWrite(
       const token = protocol.contracts[step.approve.token].address;
       const spender = protocol.contracts[step.approve.spender].address;
       const amount = (await ctx.bind(step.approve.amount, { type: 'uint256' })) as bigint;
-      const allowance = await client.readContract({ address: token, abi: erc20Abi, functionName: 'allowance', args: [account, spender] });
+      const allowance = await client.readContract({
+        address: token,
+        abi: erc20Abi,
+        functionName: 'allowance',
+        args: [account, spender],
+        blockNumber,
+      });
       if (allowance >= amount) continue;
       calls.push({
         to: token,
@@ -123,10 +136,14 @@ export async function prepareWrite(
     account,
     calls: calls.map(({ to, data, value }) => ({ to, data, value })),
     traceAssetChanges: true,
+    blockNumber,
   });
   const failed = simulation.results.findIndex((r) => r.status !== 'success');
   if (failed >= 0) {
-    const reason = simulation.results[failed].error?.message ?? 'reverted';
+    const error = simulation.results[failed].error;
+    // The contract's own revert reason when it gave one, without viem's debug details.
+    const reverted = error instanceof BaseError ? (error.walk((e) => !!(e as { reason?: string }).reason) as { reason?: string } | null) : null;
+    const reason = reverted?.reason ?? error?.message ?? 'reverted';
     throw new ToolError(`Simulation failed at step ${failed + 1} (${calls[failed].description}): ${reason}`);
   }
   const assetChanges = simulation.assetChanges
@@ -195,12 +212,13 @@ class Bindings {
     switch (declared.type) {
       case 'address':
         return resolveAddress(this.client, text);
-      case 'amount': {
+      case 'amount':
+      case 'ether': {
         if (!/^\d+(\.\d+)?$/.test(text)) throw new ToolError(`"${name}" must be a plain decimal amount, such as 10.5.`);
-        const decimals = await this.decimals(declared.token!);
+        const decimals = declared.type === 'ether' ? 18 : await this.decimals(declared.token!);
         // parseUnits would silently round extra digits, so 0.0000001 USDC would become 0.
         if ((text.split('.')[1]?.length ?? 0) > decimals) {
-          throw new ToolError(`"${name}" has more decimal places than ${declared.token} supports (${decimals}).`);
+          throw new ToolError(`"${name}" has more decimal places than ${declared.token ?? 'ETH'} supports (${decimals}).`);
         }
         return parseUnits(text, decimals);
       }

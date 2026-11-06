@@ -30,4 +30,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6.1.0
       - uses: foundry-rs/foundry-toolchain@v1
-      - run: forge test
+      # Tests fork Sepolia to swap on the real Uniswap v4 pool. Pinned a few blocks back so load-balanced RPCs agree.
+      - run: forge test --fork-url "$RPC" --fork-block-number $(( $(cast block-number --rpc-url "$RPC") - 5 ))
+        env:
+          RPC: https://ethereum-sepolia-rpc.publicnode.com

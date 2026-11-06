@@ -21,12 +21,12 @@ Details: [spec/SPEC.md](spec/SPEC.md).
 |---|---|
 | `packages/sdk` | `@web3mcp/evm`: manifest validation now; ENS discovery, reads and writes next |
 | `packages/mcp` | `@web3mcp/mcp`: the generic MCP server |
-| `packages/approve-ui` | Local signing page (planned) |
+| `packages/approve-ui` | Local signing page where your own wallet signs each write |
 | `plugins/claude-code` | Claude Code plugin: MCP server, skill, and a hook that confirms every write |
 | `plugins/codex` | Codex setup |
 | `apps/publisher` | `web3mcp-publish` CLI: `validate` now, publish to ENS next |
 | `apps/explorer` | Hosted read-only explorer (planned) |
-| `contracts` | Foundry: `DemoVault` |
+| `contracts` | Foundry: `AgentSwap`, the demo contract |
 | `spec` | Specification and shared test fixtures |
 
 ## Install
@@ -57,17 +57,25 @@ npm ci
 npm test
 ```
 
-Claude Code opened in this repo picks up `.mcp.json`, which runs the local build against the manifests in `spec/fixtures/valid`. Try: "discover vault.web3mcp-demo.eth".
+Claude Code opened in this repo picks up `.mcp.json`, which runs the local build against the manifests in `spec/fixtures/valid`. Try: "what does agentswap.web3mcp.eth quote for 0.01 ETH?"
 
-Contracts need [Foundry](https://getfoundry.sh):
+Contracts need [Foundry](https://getfoundry.sh). The tests fork Sepolia and swap on the real Uniswap v4 pool, pinned a few blocks back so public RPCs agree:
 
 ```bash
-cd contracts && forge test
+cd contracts && forge test --fork-url https://ethereum-sepolia-rpc.publicnode.com --fork-block-number $(( $(cast block-number --rpc-url https://ethereum-sepolia-rpc.publicnode.com) - 5 ))
 ```
+
+## Demo contract
+
+`AgentSwap` (`contracts/src/AgentSwap.sol`) is published as `agentswap.web3mcp.eth`. It swaps ETH and USDC on Uniswap v4's Sepolia pool, quotes through Uniswap's own Quoter, and refuses any swap that pays more than 3% below Chainlink's ETH/USD price. It holds no funds. Its manifest is `spec/fixtures/valid/agentswap.web3mcp.eth.json`.
+
+It's live on Sepolia at [`0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C`](https://sepolia.etherscan.io/address/0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C), owned by `web3mcp.eth`. `agentswap.web3mcp.eth` points at it and holds its manifest, and its primary name points back, so discovery marks it owner-verified. It was deployed through the deterministic CREATE2 deployer and published from the owner's wallet on the local signing page. The constructor takes the owner, Uniswap's PoolManager and Quoter, Chainlink's ETH/USD feed, and Circle's USDC.
 
 ## Status
 
-Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes prepared and simulated with balance changes. Next: the local signing page that sends writes to your wallet, Uniswap tools, the demo lease contract, and Arkiv search.
+Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes that are simulated, shown on a local signing page and signed in your own wallet. Uniswap quotes run through dry-run reads. The demo contract swaps on Uniswap v4 with a Chainlink price check and passes its tests on a Sepolia fork. It's deployed and published at `agentswap.web3mcp.eth`. Next: Arkiv search.
+
+To try signing, set `WEB3MCP_ACCOUNT` to your Sepolia wallet before opening Claude Code in this repo, then ask it to swap 0.001 ETH for USDC on `agentswap.web3mcp.eth`. Get test ETH from a Sepolia faucet and test USDC from faucet.circle.com.
 
 ## License
 

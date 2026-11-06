@@ -2,7 +2,7 @@
 
 Codex integration for discovering and using validated EVM protocol tools through the Web3MCP MCP server.
 
-The local launcher defaults to offline fixture discovery. Explicit live mode enables Sepolia ENS discovery, contract reads, and simulated write preparation through the shared SDK/MCP. It never signs or submits transactions.
+The local launcher defaults to offline fixture discovery. Explicit live mode enables Sepolia ENS discovery, contract reads, and write preparation through the shared SDK/MCP. After successful simulation, the shared server opens a local signing page. The user reviews and signs in their browser wallet; the agent never signs or handles signing credentials.
 
 ## Build
 
@@ -133,16 +133,23 @@ Discovered tools:
 
 This proves fixture-backed discovery through MCP, not live ENS resolution or blockchain execution.
 
+The server also exposes `discover`, `call`, and the read-only `status` tool. Fixture mode remains offline and cannot execute the discovered contract tools.
+
 The integration test launches the actual stdio server and checks registered read/write annotations without executing discovered tools.
 
 ## Manual live verification
 
-1. Obtain a confirmed published Sepolia ENS name from the publishing owner. No deployed demo name is confirmed in this repository. The vault fixture uses placeholder addresses; neither fixture name proves ENS publication.
-2. Enable live mode in the existing registration, select a Sepolia HTTP(S) RPC, refresh the installed skill copy, and restart Codex.
-3. Ask `$web3mcp` to call `discover` with that exact confirmed name. Check that the actual response says `from ENS`, reports chain `11155111`, and lists verified contracts and registered tools.
-4. Run a registered read with its declared inputs and inspect its actual result. Use `call({tool, args})` only if dynamic tools are absent.
+The repository documents AgentSwap at `agentswap.web3mcp.eth` on Ethereum Sepolia (`11155111`), contract `0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C`. This is deployment information, not proof that your current runtime has reached ENS or executed a tool.
+
+1. Enable live mode, select a Sepolia HTTP(S) RPC, refresh the installed skill copy, and restart Codex. If preserving a fixture registration, use a separate live registration and explicitly select that server for every step; do not mix discovery or signing IDs across servers.
+2. Ask `$web3mcp` to call `discover` with `{"name":"agentswap.web3mcp.eth"}`. Check that the response says `from ENS`, reports chain `11155111`, and identifies the swap contract above. Inspect actual trust labels; do not infer them from this document.
+3. Confirm these registered tools: `agentswap_eth_price`, `agentswap_quote_eth_to_usdc`, `agentswap_quote_usdc_to_eth`, `agentswap_usdc_balance`, `tx_agentswap_eth_to_usdc`, and `tx_agentswap_usdc_to_eth`. The server also exposes `discover`, `call`, and `status`.
+4. Run `agentswap_eth_price` with `{}`, then the quote tools with `{"amount":"0.001"}` ETH and `{"amount":"1"}` USDC respectively. Quotes are dry-run `eth_call` reads, even though the quote functions are non-view. Run `agentswap_usdc_balance` with `{"owner":"<your public address>"}`, replacing the placeholder. Inspect actual results. Use `call({tool, args})` only if dynamic tools are absent, checking the registered schema first.
 5. To verify failure isolation, discover a fixture name that the publisher confirms has no live publication: expect an error, never local-fixture discovery.
-6. Test write preparation separately, with a public account, suitable onchain state, and explicit approval for the exact simulation. The RPC must support `eth_simulateV1` and the state overrides used by viem asset tracing. Ordinary read success does not prove simulation support. Inspect simulation results; no transaction is sent.
+6. Before a write, set `WEB3MCP_ACCOUNT` to the public address or normalized ENS name of the wallet that will sign, restart the server, and rediscover. Ensure suitable Sepolia balances and gas. Explain the exact swap, amount, recipient, and expected costs, then obtain explicit approval before calling the write tool. Both swap tools require `amount` and `recipient`; supply the user's own public address unless they explicitly choose another recipient.
+7. The shared SDK simulates first, requiring RPC support for `eth_simulateV1` and asset-tracing state overrides. On failure, report the error and stop. The contract may reject swaps more than 3% below Chainlink's price; do not bypass this check. On success, the tool returns a review, signing-page URL, and request ID, and attempts to open the browser. This is a signing handoff, not a simulation-only tool.
+8. The user opens the returned `http://127.0.0.1:<port>/approve/<id>` URL if necessary, reviews the steps, connects an injected browser wallet matching the simulated account, and chooses whether to sign on Sepolia. Never control the wallet approval for them. To test rejection first, reject on the page and check its status; a later attempt needs a new write request.
+9. Call `status({"id":"<returned request ID>"})` on the same MCP server. It waits up to 25 seconds for the page and reports pending, rejected, failed, or signed transactions with receipt results and explorer links. Repeat while waiting as needed. Distinguish submitted/not-found receipts from confirmed success; inspect reverted results. Keep the MCP server running throughout.
 
 Automated tests are offline: they cover configuration, fixture preservation, and live stdio wiring to a controlled local RPC that rejects ENS calls. They do not prove a live deployment or successful real-network simulation.
 
@@ -170,7 +177,7 @@ Installing the plugin alone does not automatically register the MCP server.
 
 Automatic plugin installation and cache activation have not been verified.
 
-The shared SDK prepares and simulates write calls, including allowance checks and asset changes. Wallet handoff, signing, submission, and transaction-status tracking are not implemented by this launcher. No signing credentials are accepted.
+The shared SDK prepares and simulates write calls, including allowance checks and asset changes. The shared MCP serves the signing page and tracks results through `status`; no separate signing implementation lives in this plugin. The page uses an injected browser wallet, batching when supported or submitting sequentially with confirmation between steps. Sequential execution can partially complete before a later failure. Approval records are held in memory and are lost on server restart. Wallet-controlled submission costs Sepolia gas; simulation alone does not. No signing credentials are accepted by the launcher or agent.
 
 ## Troubleshooting
 

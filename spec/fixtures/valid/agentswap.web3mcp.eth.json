@@ -1,0 +1,82 @@
+{
+  "web3mcp": "0.1-evm",
+  "chainId": 11155111,
+  "name": "agentswap.web3mcp.eth",
+  "contracts": {
+    "swap": "0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C",
+    "usdc": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+  },
+  "tools": [
+    {
+      "name": "eth_price",
+      "kind": "read",
+      "description": "Current ETH price in US dollars, from Chainlink. Swaps are refused when Uniswap pays more than 3% below it.",
+      "call": { "contract": "swap", "function": "function ethPrice() view returns (uint256)" },
+      "output": { "decimals": 8, "symbol": "USD" }
+    },
+    {
+      "name": "quote_eth_to_usdc",
+      "kind": "read",
+      "dryRun": true,
+      "description": "Uniswap's exact quote for selling ETH for USDC right now, fees and price impact included.",
+      "inputs": { "amount": { "type": "ether", "description": "ETH to sell, such as 0.01" } },
+      "call": { "contract": "swap", "function": "function quoteEthToUsdc(uint128 ethIn) returns (uint256)", "args": ["$input.amount"] },
+      "output": { "decimalsFrom": "usdc", "symbol": "USDC" }
+    },
+    {
+      "name": "quote_usdc_to_eth",
+      "kind": "read",
+      "dryRun": true,
+      "description": "Uniswap's exact quote for selling USDC for ETH right now, fees and price impact included.",
+      "inputs": { "amount": { "type": "amount", "token": "usdc", "description": "USDC to sell, such as 10" } },
+      "call": { "contract": "swap", "function": "function quoteUsdcToEth(uint128 usdcIn) returns (uint256)", "args": ["$input.amount"] },
+      "output": { "decimals": 18, "symbol": "ETH" }
+    },
+    {
+      "name": "usdc_balance",
+      "kind": "read",
+      "description": "USDC balance of a wallet (Circle's test USDC on Sepolia).",
+      "inputs": { "owner": { "type": "address", "description": "Wallet address or ENS name" } },
+      "call": { "contract": "usdc", "function": "function balanceOf(address owner) view returns (uint256)", "args": ["$input.owner"] },
+      "output": { "decimalsFrom": "usdc", "symbol": "USDC" }
+    },
+    {
+      "name": "eth_to_usdc",
+      "kind": "write",
+      "description": "Sell ETH for USDC on Uniswap v4. Refused if Uniswap pays more than 3% below Chainlink's price.",
+      "inputs": {
+        "amount": { "type": "ether", "description": "ETH to sell, such as 0.01" },
+        "recipient": { "type": "address", "description": "Who gets the USDC: an address or ENS name. The user's own wallet unless they name someone." }
+      },
+      "steps": [
+        {
+          "call": {
+            "contract": "swap",
+            "function": "function swapEthToUsdc(address recipient) payable returns (uint256)",
+            "args": ["$input.recipient"],
+            "value": "$input.amount"
+          }
+        }
+      ]
+    },
+    {
+      "name": "usdc_to_eth",
+      "kind": "write",
+      "description": "Sell USDC for ETH on Uniswap v4. Refused if Uniswap pays more than 3% below Chainlink's price.",
+      "inputs": {
+        "amount": { "type": "amount", "token": "usdc", "description": "USDC to sell, such as 10" },
+        "recipient": { "type": "address", "description": "Who gets the ETH: an address or ENS name. The user's own wallet unless they name someone." }
+      },
+      "steps": [
+        { "approve": { "token": "usdc", "spender": "swap", "amount": "$input.amount" } },
+        {
+          "call": {
+            "contract": "swap",
+            "function": "function swapUsdcToEth(uint256 usdcIn, address recipient) returns (uint256)",
+            "args": ["$input.amount", "$input.recipient"]
+          }
+        }
+      ]
+    }
+  ]
+}
