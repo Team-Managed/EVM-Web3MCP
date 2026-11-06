@@ -1,6 +1,6 @@
 # How we use Arkiv
 
-Arkiv holds the Web3MCP search index: one listing per published ENS name (see [schema.md](schema.md)). Every Arkiv feature we use changes what a user sees.
+Arkiv is the search engine of Web3MCP's onchain agent web. It holds one listing per published ENS name (see [schema.md](schema.md)), and agents query it directly to find a protocol by goal. Every Arkiv feature we use changes what a user sees.
 
 | Arkiv feature | How we use it | What the user sees |
 |---|---|---|

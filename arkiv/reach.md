@@ -16,9 +16,14 @@ Yes, on Sepolia and Arkiv's Rabdi testnet:
 ## Numbers
 
 - Listed names: 1, `agentswap.web3mcp.eth`, as of 7 November 2026. It's written by [`0x99230d725DaEFb3571917661755feBB309822ECb`](https://rabdi.explorer.arkiv.network/address/0x99230d725DaEFb3571917661755feBB309822ECb).
-- Terms per listing: 24 for `agentswap.web3mcp.eth` today, all taken from its tool names and descriptions. Once its ENS manifest carries keywords, it fills all 28, the most one Arkiv entity holds alongside our columns.
+- Terms per listing: 28 for `agentswap.web3mcp.eth`, its 12 keywords and then words from its tools, the most one Arkiv entity holds alongside our columns. A search for "convert ether to dollars" matches three of them.
 - Cost of a listing: about 0.00086 tGLM for AgentSwap's at the gas price when we estimated it.
 
 ## After Mumbai
 
-TODO: the team to say whether development continues, and what comes next.
+We plan to keep building Web3MCP after Mumbai. Next:
+
+- Search in the Codex setup, so every host finds protocols by goal.
+- The explorer: a public page that reads the Arkiv listings and shows every protocol in the agent web.
+- More protocols listing themselves, starting with the ones our builder skill helps publish.
+- Mainnet: ENS on Ethereum, and Arkiv's production network when it's available.
