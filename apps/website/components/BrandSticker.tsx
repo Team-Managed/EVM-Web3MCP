@@ -32,8 +32,9 @@ const BRANDS: Record<BrandKey, { name: string; domain: string; initials: string 
 };
 
 function logoUrl(domain: string) {
-  const token = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN;
-  const params = new URLSearchParams({ size: "96", format: "png", fallback: "monogram" });
+  // Logo.dev publishable tokens are intentionally browser-visible; keep the env override for deployments.
+  const token = process.env.NEXT_PUBLIC_LOGO_DEV_TOKEN || "pk_BZOhereATUe11DHE7ILvBg";
+  const params = new URLSearchParams({ size: "96", format: "webp", retina: "true", fallback: "monogram" });
   if (token) params.set("token", token);
   return `https://img.logo.dev/${domain}?${params.toString()}`;
 }
@@ -48,6 +49,16 @@ export function BrandSticker({ brand, compact = false }: { brand: BrandKey; comp
         {!failed ? <img src={logoUrl(data.domain)} alt={`${data.name} logo`} className="h-full w-full object-contain p-1" onError={() => setFailed(true)} /> : <span className="font-sans text-[9px] font-bold text-[#5A5D64]">{data.initials}</span>}
       </span>
       {!compact && <span className="font-sans text-xs font-semibold text-[#111316]">{data.name}</span>}
+    </span>
+  );
+}
+
+export function BrandLogo({ brand, size = "large" }: { brand: BrandKey; size?: "medium" | "large" }) {
+  const [failed, setFailed] = useState(false);
+  const data = BRANDS[brand];
+  return (
+    <span className={`inline-flex items-center justify-center transition-transform duration-300 hover:-translate-y-2 hover:rotate-[-3deg] ${size === "large" ? "h-32 w-32 sm:h-40 sm:w-40" : "h-24 w-24"}`} title={data.name}>
+      {!failed ? <img src={logoUrl(data.domain)} alt={`${data.name} logo`} className="h-full w-full object-contain drop-shadow-[0_14px_0_rgba(17,19,22,0.12)]" onError={() => setFailed(true)} /> : <span className="font-editorial text-5xl text-[#7A7E87] drop-shadow-[0_8px_0_rgba(17,19,22,0.12)]">{data.initials}</span>}
     </span>
   );
 }
