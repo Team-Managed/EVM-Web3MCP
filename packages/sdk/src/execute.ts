@@ -1,4 +1,5 @@
 import {
+  BaseError,
   encodeFunctionData,
   erc20Abi,
   formatUnits,
@@ -65,6 +66,7 @@ export async function executeRead(
   const ctx = new Bindings(client, protocol, tool, input, account);
   const fn = toFunction(tool.call.function);
   const args = await ctx.args(tool.call.args, fn.inputs);
+  // An eth_call, so a dryRun function runs for real on the node but nothing is sent or saved.
   const result = await client.readContract({
     address: protocol.contracts[tool.call.contract].address,
     abi: [fn],
@@ -72,7 +74,7 @@ export async function executeRead(
     args,
   });
   if (tool.output && typeof result === 'bigint') {
-    const decimals = await ctx.decimals(tool.output.decimalsFrom);
+    const decimals = tool.output.decimals ?? (await ctx.decimals(tool.output.decimalsFrom!));
     return `${formatUnits(result, decimals)}${tool.output.symbol ? ` ${tool.output.symbol}` : ''}`;
   }
   return jsonSafe(result);
@@ -136,7 +138,10 @@ export async function prepareWrite(
   });
   const failed = simulation.results.findIndex((r) => r.status !== 'success');
   if (failed >= 0) {
-    const reason = simulation.results[failed].error?.message ?? 'reverted';
+    const error = simulation.results[failed].error;
+    // The contract's own revert reason when it gave one, without viem's debug details.
+    const reverted = error instanceof BaseError ? (error.walk((e) => !!(e as { reason?: string }).reason) as { reason?: string } | null) : null;
+    const reason = reverted?.reason ?? error?.message ?? 'reverted';
     throw new ToolError(`Simulation failed at step ${failed + 1} (${calls[failed].description}): ${reason}`);
   }
   const assetChanges = simulation.assetChanges
@@ -205,12 +210,13 @@ class Bindings {
     switch (declared.type) {
       case 'address':
         return resolveAddress(this.client, text);
-      case 'amount': {
+      case 'amount':
+      case 'ether': {
         if (!/^\d+(\.\d+)?$/.test(text)) throw new ToolError(`"${name}" must be a plain decimal amount, such as 10.5.`);
-        const decimals = await this.decimals(declared.token!);
+        const decimals = declared.type === 'ether' ? 18 : await this.decimals(declared.token!);
         // parseUnits would silently round extra digits, so 0.0000001 USDC would become 0.
         if ((text.split('.')[1]?.length ?? 0) > decimals) {
-          throw new ToolError(`"${name}" has more decimal places than ${declared.token} supports (${decimals}).`);
+          throw new ToolError(`"${name}" has more decimal places than ${declared.token ?? 'ETH'} supports (${decimals}).`);
         }
         return parseUnits(text, decimals);
       }

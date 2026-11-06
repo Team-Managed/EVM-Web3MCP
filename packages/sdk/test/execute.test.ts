@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { decodeFunctionData, erc20Abi, type Address, type Hex } from 'viem';
 import { discover, executeRead, prepareWrite, ToolError } from '../dist/index.js';
-import { fakeClient, USDC, VAULT, vaultChain, type FakeChain } from './fake-chain.ts';
+import { codeWith, fakeClient, published, USDC, VAULT, vaultChain, type FakeChain } from './fake-chain.ts';
 
 const RIYA = '0x00000000000000000000000000000000000000AA' as Address;
 
@@ -80,4 +81,46 @@ test('amounts with more decimals than the token are refused, not rounded', async
   await assert.rejects(prepareWrite(client, protocol, 'deposit', { amount: '0.0000001' }, RIYA), /more decimal places than usdc supports \(6\)/);
   const exact = await prepareWrite(client, protocol, 'deposit', { amount: '10.123456' }, RIYA);
   assert.match(exact.calls.at(-1)!.description, /deposit\(10123456\)/);
+});
+
+const swapManifest = JSON.parse(readFileSync(new URL('../../../spec/fixtures/valid/swap.web3mcp-demo.eth.json', import.meta.url), 'utf8'));
+const { swap: SWAP, usdc: SWAP_USDC } = swapManifest.contracts as Record<string, Address>;
+
+async function swapSetup(read: FakeChain['read']) {
+  const client = fakeClient({
+    texts: { 'swap.web3mcp-demo.eth': published(swapManifest) },
+    code: {
+      [SWAP.toLowerCase()]: codeWith(
+        'function ethPrice()',
+        'function quoteEthToUsdc(uint128)',
+        'function quoteUsdcToEth(uint128)',
+        'function swapEthToUsdc(address)',
+        'function swapUsdcToEth(uint256,address)',
+      ),
+      [SWAP_USDC.toLowerCase()]: codeWith('function balanceOf(address)', 'function decimals()', 'function approve(address,uint256)'),
+    },
+    read,
+    simulate: (calls) => ({ results: calls.map(() => ({ status: 'success' })), assetChanges: [] }),
+  });
+  return { client, protocol: await discover(client, 'swap.web3mcp-demo.eth') };
+}
+
+test('a dry-run read, like a Uniswap quote, runs and formats with fixed decimals', async () => {
+  let asked: unknown;
+  const { client, protocol } = await swapSetup((fn, args) => {
+    if (fn === 'quoteUsdcToEth') asked = args[0];
+    return { decimals: 6, quoteUsdcToEth: 400_000_000_000_000n }[fn];
+  });
+  assert.equal(await executeRead(client, protocol, 'quote_usdc_to_eth', { amount: '10' }), '0.0004 ETH');
+  assert.equal(asked, 10_000000n);
+});
+
+test('an ether input is sent as the call value', async () => {
+  const { client, protocol } = await swapSetup(() => undefined);
+  const prepared = await prepareWrite(client, protocol, 'eth_to_usdc', { amount: '0.001', recipient: RIYA }, RIYA);
+  assert.deepEqual(prepared.calls.map((c) => [c.to, c.value]), [[SWAP, 10n ** 15n]]);
+  await assert.rejects(
+    prepareWrite(client, protocol, 'eth_to_usdc', { amount: '0.0000000000000000001', recipient: RIYA }, RIYA),
+    /more decimal places than ETH supports \(18\)/,
+  );
 });
