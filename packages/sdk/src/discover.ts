@@ -97,7 +97,7 @@ export async function assertUnchanged(client: ChainClient, protocol: Protocol): 
 }
 
 // Lowercase hex of the contract's code plus its proxy implementation's code, so selector checks see both.
-async function readCode(client: ChainClient, address: Address): Promise<{ code: string | undefined; fingerprint: Hex }> {
+export async function readCode(client: ChainClient, address: Address): Promise<{ code: string | undefined; fingerprint: Hex }> {
   const code = (await client.getCode({ address }))?.toLowerCase();
   if (!code || code === '0x') return { code: undefined, fingerprint: '0x' };
   const implementation = await implementationOf(client, address, code);
