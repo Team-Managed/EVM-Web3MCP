@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   description:
     "Smart contracts publish tool manifests under their own ENS name. One generic MCP host discovers them, reads contracts, simulates writes, and routes signing to your wallet.",
   keywords: ["Ethereum", "ENS", "Model Context Protocol", "MCP", "AI Agents", "Smart Contracts", "ETHGlobal"],
+  icons: {
+    icon: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

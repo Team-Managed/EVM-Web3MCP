@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Github } from "lucide-react";
 import { HeroRibbonWave } from "./HeroRibbonWave";
+import { Logo } from "./Logo";
 
 /**
  * Editorial Footer with Subtle Moving 3D Ribbon Wave Background
@@ -29,9 +30,12 @@ export function Footer() {
       <div className="relative z-20 mx-auto max-w-5xl px-5 py-10 sm:px-8 sm:py-14">
         <div className="flex flex-col gap-6 border-b border-[#E2DFD7] pb-8 md:flex-row md:items-end md:justify-between">
           <div>
-            <span className="font-editorial text-2xl sm:text-3xl font-normal tracking-tight text-[#111316]">
-              Web3MCP
-            </span>
+            <div className="flex items-center gap-2.5 text-[#111316]">
+              <Logo size={26} />
+              <span className="font-editorial text-2xl sm:text-3xl font-normal tracking-tight">
+                Web3MCP
+              </span>
+            </div>
             <p className="mt-2 max-w-sm text-xs sm:text-sm leading-relaxed text-[#5A5D64]">
               The open EVM standard connecting smart contracts to AI agent tools.
             </p>

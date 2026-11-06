@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { NAV_ITEMS } from "@/lib/data";
 import { Menu, X, ArrowUpRight, Github } from "lucide-react";
+import { Logo } from "./Logo";
 
 /**
  * Floating Black Pill Navbar
@@ -20,10 +21,8 @@ export function Navbar() {
       <header className="pointer-events-auto w-full max-w-5xl bg-[#111316]/95 backdrop-blur-xl border border-white/10 rounded-full px-5 sm:px-6 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.35)] transition-all duration-200">
         <div className="flex items-center justify-between">
           {/* Brand */}
-          <Link href="/" className="flex items-center group">
-            <span className="font-sans font-bold tracking-tight text-base sm:text-lg text-[#FAF9F6]">
-              Web3MCP
-            </span>
+          <Link href="/" className="flex items-center group text-[#FAF9F6]">
+            <Logo size={22} showText className="group-hover:opacity-90 transition-opacity" />
           </Link>
 
           {/* Desktop Navigation Links */}

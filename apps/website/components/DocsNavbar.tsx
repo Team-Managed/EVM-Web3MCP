@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowLeft, Github } from "lucide-react";
+import { Logo } from "./Logo";
 
 export function DocsNavbar() {
   return (
@@ -12,9 +13,9 @@ export function DocsNavbar() {
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            className="font-sans text-base font-bold tracking-tight text-[#111316] transition-opacity hover:opacity-80"
+            className="flex items-center text-[#111316] transition-opacity hover:opacity-80"
           >
-            Web3MCP
+            <Logo size={20} showText />
           </Link>
           <span className="text-[#A0A4AE]">/</span>
           <span className="text-xs font-semibold uppercase tracking-wider text-[#5A5D64]">Docs</span>
