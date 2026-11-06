@@ -195,9 +195,15 @@ class Bindings {
     switch (declared.type) {
       case 'address':
         return resolveAddress(this.client, text);
-      case 'amount':
+      case 'amount': {
         if (!/^\d+(\.\d+)?$/.test(text)) throw new ToolError(`"${name}" must be a plain decimal amount, such as 10.5.`);
-        return parseUnits(text, await this.decimals(declared.token!));
+        const decimals = await this.decimals(declared.token!);
+        // parseUnits would silently round extra digits, so 0.0000001 USDC would become 0.
+        if ((text.split('.')[1]?.length ?? 0) > decimals) {
+          throw new ToolError(`"${name}" has more decimal places than ${declared.token} supports (${decimals}).`);
+        }
+        return parseUnits(text, decimals);
+      }
       case 'uint256':
         if (!/^\d+$/.test(text)) throw new ToolError(`"${name}" must be a whole number.`);
         return BigInt(text);

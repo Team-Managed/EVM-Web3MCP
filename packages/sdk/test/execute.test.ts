@@ -74,3 +74,10 @@ test('amounts must be plain decimals', async () => {
   const { client, protocol } = await setup({ read: reads(), simulate: simulateOk });
   await assert.rejects(prepareWrite(client, protocol, 'deposit', { amount: '1e6' }, RIYA), /plain decimal/);
 });
+
+test('amounts with more decimals than the token are refused, not rounded', async () => {
+  const { client, protocol } = await setup({ read: reads(), simulate: simulateOk });
+  await assert.rejects(prepareWrite(client, protocol, 'deposit', { amount: '0.0000001' }, RIYA), /more decimal places than usdc supports \(6\)/);
+  const exact = await prepareWrite(client, protocol, 'deposit', { amount: '10.123456' }, RIYA);
+  assert.match(exact.calls.at(-1)!.description, /deposit\(10123456\)/);
+});
