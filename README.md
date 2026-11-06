@@ -1,8 +1,10 @@
 # EVM-Web3MCP
 
-Web3MCP for EVM chains. A protocol publishes the tools it wants AI agents to use under its own ENS name. One generic MCP server, installed as a Claude Code plugin or added to Codex, discovers those tools, reads contracts, simulates every write, and hands signing to the user's own wallet. There's no MCP server per protocol, and the agent never holds a key.
+**Let AI agents use any smart contract, just by its ENS name.**
 
-Sibling of [Solana-Web3MCP](https://github.com/Team-Managed/Solana-Web3MCP). Built at ETHGlobal Mumbai 2026.
+Today an AI agent can only use a smart contract if someone writes custom code for it. With Web3MCP, the contract publishes its own list of tools under its ENS name, like `uniswap.eth`. Install one plugin in Claude Code or Codex and ask *"swap 10 USDC for ETH on uniswap.eth"*. The agent finds the tools, checks the contract and prepares the transaction. You review it and sign in your own wallet; the agent never holds your keys.
+
+Built at ETHGlobal Mumbai 2026. Sibling of [Solana-Web3MCP](https://github.com/Team-Managed/Solana-Web3MCP).
 
 ## How it works
 
