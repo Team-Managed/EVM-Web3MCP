@@ -32,7 +32,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6.1.0
       - uses: foundry-rs/foundry-toolchain@v1
-      # Tests fork Sepolia to swap on the real Uniswap v4 pool. Pinned a few blocks back so load-balanced RPCs agree.
-      - run: forge test --fork-url "$RPC" --fork-block-number $(( $(cast block-number --rpc-url "$RPC") - 5 ))
+      # Deterministic tests use fresh local state and must not inherit live account balances.
+      - name: Deterministic contract tests (no RPC)
+        run: forge test --no-match-contract AgentSwapTest
+      # AgentSwap swaps on the real Uniswap v4 pool. Pin a few blocks back so load-balanced RPCs agree.
+      - name: AgentSwap Sepolia fork regressions
+        run: forge test --match-contract AgentSwapTest --fork-url "$RPC" --fork-block-number $(( $(cast block-number --rpc-url "$RPC") - 5 ))
         env:
           RPC: https://ethereum-sepolia-rpc.publicnode.com
