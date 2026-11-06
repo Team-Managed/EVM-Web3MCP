@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 test('portable plugin and skill metadata', async () => {
   const plugin = JSON.parse(await readFile(new URL('../plugin.json', import.meta.url), 'utf8'));
@@ -24,11 +25,11 @@ test('real stdio discovery from unrelated cwd with spaces', async () => {
     command: process.execPath,
     args: [fileURLToPath(new URL('../scripts/serve.ts', import.meta.url))],
     cwd,
-    env: { ...process.env, WEB3MCP_MANIFEST_DIR: join(cwd, 'wrong-directory') } as Record<string, string>,
+    env: { ...process.env, WEB3MCP_MODE: 'fixture', WEB3MCP_RPC_URL: 'invalid', WEB3MCP_MANIFEST_DIR: join(cwd, 'wrong-directory') } as Record<string, string>,
   });
   try {
     await client.connect(transport);
-    const result = await client.callTool({ name: 'discover', arguments: { name: 'vault.web3mcp-demo.eth' } });
+    const result = await client.callTool({ name: 'discover', arguments: { name: 'vault.web3mcp-demo.eth' } }) as CallToolResult;
     assert.ok(!result.isError, result.content.map((item) => item.type === 'text' ? item.text : '').join('\n'));
     assert.deepEqual(result.content, [{
       type: 'text',
