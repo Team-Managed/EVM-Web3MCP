@@ -22,12 +22,16 @@ Open question: if text records are too small or too costly for a full manifest, 
   "web3mcp": "0.1-evm",
   "chainId": 11155111,
   "name": "vault.web3mcp-demo.eth",
+  "description": "A demo USDC vault: deposit, withdraw and check your balance.",
+  "keywords": ["vault", "deposit", "withdraw", "usdc"],
   "contracts": { "vault": "0x…", "usdc": "0x…" },
   "tools": [ … ]
 }
 ```
 
 - `name` must equal the ENS name the manifest was read from.
+- `description` (optional) is one line about the protocol, up to 200 characters. Search shows it.
+- `keywords` (optional) are up to 16 words people might search for the protocol by: actions, synonyms, token symbols. Each is a lowercase word of 2 to 30 letters or digits.
 - `contracts` maps lowercase aliases to addresses on `chainId`.
 - `tools` holds 1 to 32 tools. Tool names are lowercase identifiers of up to 32 characters, unique within the manifest.
 

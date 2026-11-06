@@ -2,6 +2,8 @@
   "web3mcp": "0.1-evm",
   "chainId": 11155111,
   "name": "agentswap.web3mcp.eth",
+  "description": "Swap ETH and USDC on Uniswap v4, at a price checked against Chainlink.",
+  "keywords": ["swap", "exchange", "trade", "convert", "dex", "uniswap", "eth", "ether", "usdc", "stablecoin", "quote", "price"],
   "contracts": {
     "swap": "0xE17021E2fd5Dd0A6608293E7Ac5E3c361ae30e58",
     "usdc": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
