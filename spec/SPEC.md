@@ -35,7 +35,7 @@ The exact schema is `packages/sdk/src/manifest.ts`. Valid and invalid examples a
 
 ### Tools
 
-- **Read tool** (`"kind": "read"`): one `call` to a `view` or `pure` function.
+- **Read tool** (`"kind": "read"`): one `call` to a `view` or `pure` function. An optional `output` (`{ "decimalsFrom": "usdc", "symbol": "USDC" }`) formats a numeric result with that contract's `decimals()`, so agents see `10.5 USDC` instead of `10500000`.
 - **Write tool** (`"kind": "write"`): 1 to 4 `steps`. Each step is either a `call` to a state-changing function, or an `approve` of an ERC-20 `token` to a `spender`.
 
 A `call` names a contract alias, a human-readable function signature (`function deposit(uint256 amount)`), and one argument binding per function input. An optional `value` is allowed only for `payable` functions.
@@ -61,7 +61,7 @@ Planned: `abiEncode(...)` for nested calldata such as Uniswap's Universal Router
 1. Resolve the name and read both records. Check the digest, then validate the manifest. Unknown fields, unknown aliases, undeclared inputs, wrong argument counts, and a read tool calling a state-changing function all fail discovery.
 2. For each contract: confirm code exists, that every declared function selector is present, and record a code fingerprint (and the EIP-1967 implementation for proxies).
 3. Trust level per contract. The manifest under the name is the forward link, because only the name's owner can list a contract there.
-   - **Owner-verified**: the contract's ENS primary name is the publishing name. The contract's owner sets it through the reverse registrar.
+   - **Owner-verified**: the contract's ENS primary name is the publishing name or one of its subnames. The contract's owner sets it through the reverse registrar. ENS only reports a primary name whose address record points back to the contract, so a protocol with several contracts points its name at one and gives each other contract a subname, such as `quoter.uniswap.eth`.
    - **Name-only**: no primary name points back, for example because the contract has no owner. The publishing name is the only authority. Hosts must show this label and ask for an extra confirmation.
 
 ## 4. Writes
@@ -80,7 +80,7 @@ Discovered tools are named `<namespace>_<tool>` for reads and `tx_<namespace>_<t
 
 ## 6. Search (Arkiv)
 
-Agents find protocols by what they can do, through an index on Arkiv:
+Agents find protocols by what they can do, through an index on Arkiv. Search is optional and never blocks discovery: when the user names an ENS name, the host discovers it directly. Search only helps when the user describes a goal without a name, and a host without search asks the user for the name instead.
 
 - Publishing writes one Arkiv entity per name, owned by the publisher's wallet: the ENS name, `chainId`, the manifest digest, and each tool's name and description.
 - Entities expire unless the publisher refreshes them, so abandoned protocols drop out of search. They stay usable by name.

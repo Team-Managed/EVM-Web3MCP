@@ -2,7 +2,11 @@
   "mcpServers": {
     "web3mcp": {
       "command": "npx",
-      "args": ["-y", "@web3mcp/mcp@0.0.1"]
+      "args": ["-y", "@web3mcp/mcp@0.0.1"],
+      "env": {
+        "WEB3MCP_ACCOUNT": "${user_config.account}",
+        "WEB3MCP_RPC_URL": "${user_config.rpc_url}"
+      }
     }
   }
 }

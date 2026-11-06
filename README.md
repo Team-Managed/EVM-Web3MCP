@@ -1,14 +1,16 @@
 # EVM-Web3MCP
 
-Web3MCP for EVM chains. A protocol publishes the tools it wants AI agents to use under its own ENS name. One generic MCP server, installed as a Claude Code plugin or added to Codex, discovers those tools, reads contracts, simulates every write, and hands signing to the user's own wallet. There's no MCP server per protocol, and the agent never holds a key.
+**Let AI agents use any smart contract, just by its ENS name.**
 
-Sibling of [Solana-Web3MCP](https://github.com/Team-Managed/Solana-Web3MCP). Built at ETHGlobal Mumbai 2026.
+Today an AI agent can only use a smart contract if someone writes custom code for it. With Web3MCP, the contract publishes its own list of tools under its ENS name, like `uniswap.eth`. Install one plugin in Claude Code or Codex and ask *"swap 10 USDC for ETH on uniswap.eth"*. The agent finds the tools, checks the contract and prepares the transaction. You review it and sign in your own wallet; the agent never holds your keys.
+
+Built at ETHGlobal Mumbai 2026. Sibling of [Solana-Web3MCP](https://github.com/Team-Managed/Solana-Web3MCP).
 
 ## How it works
 
 1. **Publish.** The protocol stores a manifest in text records on its own ENS name, such as `uniswap.eth`. With ENSv2 per-record roles, a release key can update the tools but nothing else on the name.
-2. **Find.** Agents search an index on Arkiv by capability ("who offers a swap?") to get matching ENS names.
-3. **Discover.** The host reads and validates the manifest from ENS. A contract whose own primary name points back to the publishing name is owner-verified; otherwise it's labelled name-only.
+2. **Find (optional).** If the user names a protocol, the agent goes straight to it. If they only describe a goal ("swap my ETH"), the agent searches an index on Arkiv for matching ENS names.
+3. **Discover.** The host reads and validates the manifest from ENS. A contract whose own primary name points back to the publishing name, or one of its subnames, is owner-verified; otherwise it's labelled name-only.
 4. **Use.** Reads are plain contract calls. Writes are simulated, shown on a local signing page with the exact balance changes, and signed in the user's wallet.
 
 Details: [spec/SPEC.md](spec/SPEC.md).
@@ -65,7 +67,7 @@ cd contracts && forge test
 
 ## Status
 
-Scaffold. Working: manifest validation, and an MCP server whose `discover` registers a protocol's tools and notifies the client. Next: ENS discovery and the trust check, reads and writes, the signing page, Uniswap tools, and Arkiv search.
+Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes prepared and simulated with balance changes. Next: the local signing page that sends writes to your wallet, Uniswap tools, the demo lease contract, and Arkiv search.
 
 ## License
 

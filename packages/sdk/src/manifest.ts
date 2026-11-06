@@ -30,8 +30,11 @@ const common = {
   inputs: z.record(identifier, input).default({}),
 };
 
+// Formats a read's numeric result with this contract's decimals(), such as "10.5 USDC".
+const output = z.strictObject({ decimalsFrom: identifier, symbol: z.string().max(12).optional() });
+
 const tool = z.discriminatedUnion('kind', [
-  z.strictObject({ ...common, kind: z.literal('read'), call }),
+  z.strictObject({ ...common, kind: z.literal('read'), call, output: output.optional() }),
   z.strictObject({ ...common, kind: z.literal('write'), steps: z.array(step).min(1).max(4) }),
 ]);
 
@@ -91,6 +94,7 @@ function checkReferences(m: Manifest): string[] {
     }
 
     const calls = t.kind === 'read' ? [t.call] : t.steps.flatMap((s) => ('call' in s ? [s.call] : []));
+    if (t.kind === 'read' && t.output) checkAlias(t.output.decimalsFrom, `${at}.output`);
     if (t.kind === 'write') {
       for (const s of t.steps) {
         if (!('approve' in s)) continue;
