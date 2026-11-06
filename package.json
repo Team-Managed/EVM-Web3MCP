@@ -7,7 +7,8 @@
   "workspaces": [
     "packages/sdk",
     "packages/mcp",
-    "apps/publisher"
+    "apps/publisher",
+    "apps/website"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
