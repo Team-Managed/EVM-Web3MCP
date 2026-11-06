@@ -1,4 +1,5 @@
-import { Approvals } from '@web3mcp/mcp/approvals';
+import type { Approvals } from '@web3mcp/mcp/approvals';
+import { localApprovals } from './browser.js';
 import { messageOf } from './message.js';
 import { revalidatePublication, verifyPublication, type Publication, type PublicationClient } from './publication.js';
 
@@ -20,7 +21,7 @@ export async function runPublication(client: PublicationClient, publication: Pub
     await revalidatePublication(client, publication);
     if (Date.now() >= deadline) throw new Error('Request expired during validation.');
   };
-  const approvals = options.approvals?.(beforeSign) ?? new Approvals(undefined, undefined, beforeSign);
+  const approvals = options.approvals?.(beforeSign) ?? localApprovals(beforeSign);
   try {
     const reviewProtocol = { ...publication.protocol, contracts: { ...publication.protocol.contracts,
       resolver: { address: publication.options.resolver, trust: 'name-only' as const, fingerprint: publication.snapshots[publication.options.resolver] } } };

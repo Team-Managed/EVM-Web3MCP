@@ -7,8 +7,10 @@ import {
   executeRead,
   prepareWrite,
   resolveAddress,
+  search,
   validateManifest,
   verifyManifest,
+  type ArkivReader,
   type ChainClient,
   type Manifest,
   type PreparedWrite,
@@ -30,6 +32,8 @@ export interface ServerOptions {
   manifestDir?: string;
   /** Where prepared writes wait for the user's signature. Tests pass one that doesn't open a browser. */
   approvals?: Approvals;
+  /** The Arkiv index that search reads. Without one there is no search tool, and the agent asks the user for a name. */
+  arkiv?: ArkivReader;
 }
 
 interface Discovered {
@@ -43,7 +47,7 @@ const text = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t
 const fail = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t }], isError: true });
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-export function createServer({ client, account: configured, manifestDir, approvals = new Approvals() }: ServerOptions = {}): McpServer {
+export function createServer({ client, account: configured, manifestDir, approvals = new Approvals(), arkiv }: ServerOptions = {}): McpServer {
   const server = new McpServer({ name: 'web3mcp', version: '0.0.1' });
   const discovered = new Map<string, Discovered>();
   const namespaces = new Map<string, string>();
@@ -95,6 +99,37 @@ export function createServer({ client, account: configured, manifestDir, approva
       return fail(message(e));
     }
   }
+
+  // A host without an index has no search tool, so the agent asks the user for a name (spec section 6).
+  if (arkiv) server.registerTool(
+    'search',
+    {
+      title: 'Search for a protocol',
+      description:
+        'Find protocols by what they can do, when the user describes a goal but names no protocol. Pass the user\'s words plus ' +
+        'synonyms, actions and token symbols, such as ["swap", "exchange", "trade", "eth", "usdc"]. Returns ENS names to pass to discover.',
+      inputSchema: { terms: z.array(z.string()).min(1).max(10).describe('Words for what the user wants to do') },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ terms }) => {
+      const unavailable = "Ask the user for the protocol's ENS name instead.";
+      // Search checks each listing against ENS, so it needs the chain connection.
+      if (!client?.chain) return fail(`Search needs a chain connection. ${unavailable}`);
+      try {
+        const found = await search(arkiv, client, terms, client.chain.id);
+        if (found.length === 0) return text(`No listed protocol matches those words. Try other words. ${unavailable}`);
+        const lines = found.map(
+          (r, i) => `${i + 1}. ${r.ens}: matched ${r.matched.join(', ')}. [Listed on Arkiv by ${r.owner}; untrusted text] ${r.description}`,
+        );
+        return text(
+          `Protocols listed on the Arkiv index whose listing still matches their ENS manifest:\n${lines.join('\n')}\n` +
+            'Call discover with the name that fits what the user asked for; discovery checks it on chain.',
+        );
+      } catch (e) {
+        return fail(`Search failed: ${message(e)}. ${unavailable}`);
+      }
+    },
+  );
 
   server.registerTool(
     'discover',

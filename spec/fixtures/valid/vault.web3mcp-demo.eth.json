@@ -2,6 +2,8 @@
   "web3mcp": "0.1-evm",
   "chainId": 11155111,
   "name": "vault.web3mcp-demo.eth",
+  "description": "A demo USDC vault: deposit, withdraw and check your balance.",
+  "keywords": ["vault", "deposit", "withdraw", "savings", "usdc", "stablecoin", "balance"],
   "contracts": {
     "vault": "0x0000000000000000000000000000000000000001",
     "usdc": "0x0000000000000000000000000000000000000002"

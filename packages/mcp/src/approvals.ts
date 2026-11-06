@@ -3,20 +3,18 @@ import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import type { PreparedCall, PreparedWrite, Protocol } from '@web3mcp/evm';
+import type { Chain } from 'viem';
 
 export type ApprovalStatus = 'pending' | 'submitted' | 'rejected' | 'failed';
-
-/** Review metadata for locally prepared operations that are not ENS-discovered tools. */
-export interface ApprovalReview {
-  name: string;
-  chainId: number;
-  contracts: { alias: string; address: `0x${string}`; trust: string }[];
-}
 
 /** A prepared write waiting for the user to sign it in their own wallet, on the local signing page. */
 export interface Approval {
   id: string;
   chainId: number;
+  /** A chain the page doesn't know, which it asks the wallet to add. */
+  chain?: Pick<Chain, 'id' | 'name' | 'nativeCurrency' | 'rpcUrls' | 'blockExplorers'>;
+  /** The page's heading, for a request that isn't one of a protocol's tools. */
+  title?: string;
   protocol: string;
   tool: string;
   account: `0x${string}`;
@@ -56,19 +54,10 @@ export class Approvals {
     private beforeSign?: (id: string) => Promise<void>,
   ) {}
 
-  async create(prepared: PreparedWrite, protocol: Protocol, tool: string): Promise<{ id: string; url: string }> {
-    return this.createRequest(prepared, {
-      name: protocol.name, chainId: protocol.manifest.chainId,
-      contracts: Object.entries(protocol.contracts).map(([alias, c]) => ({ alias, address: c.address, trust: c.trust })),
-    }, tool);
-  }
-
-  async createRequest(prepared: PreparedWrite, review: ApprovalReview, tool: string): Promise<{ id: string; url: string }> {
-    const id = randomBytes(16).toString('hex');
-    this.approvals.set(id, {
-      id,
-      chainId: review.chainId,
-      protocol: review.name,
+  create(prepared: PreparedWrite, protocol: Protocol, tool: string): Promise<{ id: string; url: string }> {
+    return this.request({
+      chainId: protocol.manifest.chainId,
+      protocol: protocol.name,
       tool,
       account: prepared.account,
       calls: prepared.calls.map((c) => ({
@@ -83,10 +72,14 @@ export class Approvals {
         args: c.args,
       })),
       assetChanges: prepared.assetChanges,
-      trust: review.contracts,
-      status: 'pending',
-      hashes: [],
+      trust: Object.entries(protocol.contracts).map(([alias, c]) => ({ alias, address: c.address, trust: c.trust })),
     });
+  }
+
+  /** Put any transaction on the signing page, such as the publisher's Arkiv listing; create() fills one from a prepared write. */
+  async request(fields: Omit<Approval, 'id' | 'status' | 'hashes'>): Promise<{ id: string; url: string }> {
+    const id = randomBytes(16).toString('hex');
+    this.approvals.set(id, { ...fields, id, status: 'pending', hashes: [] });
     const url = `${await this.start()}/approve/${id}`;
     this.open(url);
     return { id, url };

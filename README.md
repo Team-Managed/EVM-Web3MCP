@@ -22,12 +22,13 @@ Details: [spec/SPEC.md](spec/SPEC.md).
 | `packages/sdk` | `@web3mcp/evm`: manifest validation now; ENS discovery, reads and writes next |
 | `packages/mcp` | `@web3mcp/mcp`: the generic MCP server |
 | `packages/approve-ui` | Local signing page where your own wallet signs each write |
-| `plugins/claude-code` | Claude Code plugin: MCP server, skill, and a hook that confirms every write |
+| `plugins/claude-code` | Claude Code and Codex plugin: MCP server, a skill to use protocols, a skill to build them, and a hook that confirms every write |
 | `plugins/codex` | Codex setup |
-| `apps/publisher` | `web3mcp-publish` CLI: `validate` now, publish to ENS next |
+| `apps/publisher` | `web3mcp-publish` CLI: validate a manifest, check it against the chain, print the ENS records to publish, list a published name on the Arkiv search index, and search it |
 | `apps/explorer` | Hosted read-only explorer (planned) |
 | `contracts` | Foundry: `AgentSwap`, the demo contract |
 | `spec` | Specification and shared test fixtures |
+| `arkiv` | How we use Arkiv: schema, feedback, and the write-ups for Arkiv's prize |
 
 ## Install
 
@@ -52,6 +53,16 @@ codex plugin add web3mcp@evm-web3mcp
 ```
 
 The plugin carries the server as one bundled file (`plugins/claude-code/server/`) with the signing page, so it needs only Node 22 or newer; nothing is downloaded from npm. Claude Code takes your wallet address from the plugin's options. In Codex, or any time, tell the agent your wallet ("my wallet is yourname.eth") and it sets it with the `wallet` tool. More on Codex, including a development launcher: [plugins/codex](plugins/codex/README.md).
+
+## Build with Web3MCP
+
+The `web3mcp-build` skill teaches a coding agent to make any contract agent-ready: write and check its manifest, design or upgrade the contract, and publish its tools on ENS. It ships with the plugin, and installs on its own in Claude Code, Codex, Cursor and other agents:
+
+```bash
+npx skills add Team-Managed/EVM-Web3MCP --skill web3mcp-build
+```
+
+It carries its own checker (`scripts/web3mcp-publish.mjs`), so it needs only Node 22. Try: "make my vault at 0x… usable by agents under vault.myprotocol.eth".
 
 ## Develop
 
@@ -83,9 +94,33 @@ It's live on Sepolia at [`0xE17021E2fd5Dd0A6608293E7Ac5E3c361ae30e58`](https://s
 
 GiftBox is an independent ENSv2-based ETH/USDC gifting demo: an unlocked gift belongs to the name's current owner at claim time. It is deployed on Sepolia at `0xdcF1c9809aA58C7C390753E43dE25Dd064F7eda8` and published at `gifts.web3mcp.eth` (owner-verified). See [GiftBox lifecycle, deployment evidence, tools and publication requirements](docs/GIFTBOX.md) and the [deployment manifest](manifests/sepolia/gifts.web3mcp.eth.json). The publisher checks ENSv2 permissions, simulates the one DNS-name record transaction, and supports dry-run review or an explicitly confirmed browser-wallet handoff; it published `gifts.web3mcp.eth`.
 
+## Search on Arkiv
+
+A publisher lists its name on an index on [Arkiv](https://arkiv.network), so agents can find it by what it does. Each search term is an indexed attribute, so Arkiv itself finds the listings that match, and each listing expires unless the publisher refreshes it. Hosts keep only listings that still match the name's ENS record. Details: [spec section 6](spec/SPEC.md#6-search-arkiv) and [`arkiv/`](arkiv).
+
+Search the index the way an agent's `search` tool does (after `npm ci` and `npm run build`):
+
+```bash
+npx web3mcp-publish search swap usdc
+```
+
+List a published name, or refresh its listing for another 30 days. Fund your wallet with tGLM from the [Arkiv faucet](https://hub.arkiv.network/faucet) first, then sign in your browser wallet, on the same local signing page agents use for writes. The page adds Arkiv's network to your wallet if it doesn't have it:
+
+```bash
+npx web3mcp-publish index agentswap.web3mcp.eth --browser <your-address>
+```
+
+Or sign with a [Foundry keystore](https://getfoundry.sh/cast/reference/wallet/import). Either way, no key goes in the environment:
+
+```bash
+npx web3mcp-publish index agentswap.web3mcp.eth --account web3mcp
+```
+
+Set `WEB3MCP_ARKIV_KEY` to an [Arkiv access key](https://hub.arkiv.network/access-keys) to avoid the public endpoint's rate limit. Listings live on Arkiv's Rabdi testnet (chain 7794095). Our listing of `agentswap.web3mcp.eth` was written by [`0x99230d725DaEFb3571917661755feBB309822ECb`](https://rabdi.explorer.arkiv.network/address/0x99230d725DaEFb3571917661755feBB309822ECb).
+
 ## Status
 
-Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes that are simulated, shown on a local signing page and signed in your own wallet. Uniswap quotes run through dry-run reads. The demo contract swaps on Uniswap v4 with a Chainlink price check and passes its tests on a Sepolia fork. It's deployed and published at `agentswap.web3mcp.eth`. Next: Arkiv search.
+Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes that are simulated, shown on a local signing page and signed in your own wallet. Uniswap quotes run through dry-run reads. The demo contract swaps on Uniswap v4 with a Chainlink price check and passes its tests on a Sepolia fork. It's deployed and published at `agentswap.web3mcp.eth`. Published names can be listed on an Arkiv index, so an agent finds a protocol from a goal ("swap my ETH") when the user names none. Next: the explorer.
 
 To try signing, set `WEB3MCP_ACCOUNT` to your Sepolia wallet before opening Claude Code in this repo, then ask it to swap 0.001 ETH for USDC on `agentswap.web3mcp.eth`. Get test ETH from a Sepolia faucet and test USDC from faucet.circle.com.
 

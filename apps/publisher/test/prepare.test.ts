@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { keccak256, toBytes, decodeFunctionData, parseAbi } from 'viem';
 import { validateManifest } from '@web3mcp/evm';
-import { publicationPlan } from '../src/prepare.ts';
+import { publicationPlan } from '../dist/prepare.js';
 
 const read = (path: string) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 const real = read('../../../manifests/sepolia/gifts.web3mcp.eth.json');

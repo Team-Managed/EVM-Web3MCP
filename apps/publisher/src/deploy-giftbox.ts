@@ -2,7 +2,7 @@
 import { createInterface } from 'node:readline/promises';
 import { createPublicClient, http, isHash, keccak256, type Hex } from 'viem';
 import { sepolia } from 'viem/chains';
-import { Approvals } from '@web3mcp/mcp/approvals';
+import { localApprovals } from './browser.js';
 import { DEPLOYMENT, prepareDeployment, verifyDeployment } from './deployment.js';
 import { messageOf } from './message.js';
 
@@ -32,14 +32,16 @@ try {
       if (answer.trim() !== 'deploy GiftBox') { console.log('Cancelled; no request created.'); process.exit(0); }
       await prepareDeployment(client, plan.gas);
       const deadline = Date.now() + 600_000;
-      const approvals = new Approvals(undefined, undefined, async () => {
+      const approvals = localApprovals(async () => {
         if (Date.now() >= deadline) throw new Error('Deployment request expired.');
         await prepareDeployment(client, plan.gas);
         if (Date.now() >= deadline) throw new Error('Deployment request expired during checks.');
       });
       try {
-        const request = await approvals.createRequest(plan.prepared, { name: plan.prepared.protocol, chainId: DEPLOYMENT.chainId,
-          contracts: [{ alias: 'create2_factory', address: DEPLOYMENT.factory, trust: 'name-only' }] }, 'deploy_giftbox');
+        const { to, data, gas, description, kind, contract, args } = plan.prepared.calls[0];
+        const request = await approvals.request({ chainId: DEPLOYMENT.chainId, title: 'Deploy GiftBox', protocol: plan.prepared.protocol,
+          tool: 'deploy_giftbox', account: DEPLOYMENT.account, calls: [{ to, data, value: '0', gas: String(gas), description, kind, contract, args }],
+          assetChanges: [], trust: [{ alias: 'create2_factory', address: DEPLOYMENT.factory, trust: 'name-only' }] });
         console.log(`Local review: ${request.url}\nRequest ID: ${request.id}\nConnect your expected MetaMask account on Sepolia; review the factory, zero value, data and gas before manually signing.`);
         let outcome = approvals.get(request.id)!;
         while (outcome.status === 'pending' && Date.now() < deadline) {

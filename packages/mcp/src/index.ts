@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { createPublicClient as createArkivClient } from '@arkiv-network/sdk';
+import { rabdi } from '@arkiv-network/sdk/chains';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { createPublicClient, http } from 'viem';
 import { mainnet, sepolia } from 'viem/chains';
@@ -13,4 +15,6 @@ await createServer({
   client,
   account: env.WEB3MCP_ACCOUNT || undefined,
   manifestDir: env.WEB3MCP_MANIFEST_DIR || undefined,
+  // Arkiv's testnet. An access key is optional; without one, search uses the rate-limited public endpoint.
+  arkiv: createArkivClient({ chain: rabdi({ accessKey: env.WEB3MCP_ARKIV_KEY ?? '' }), transport: http() }),
 }).connect(new StdioServerTransport());
