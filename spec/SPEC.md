@@ -11,7 +11,7 @@ The manifest lives in text records on the protocol's ENS name:
 | `org.web3mcp.manifest` | The manifest JSON (section 2) |
 | `org.web3mcp.digest` | `keccak256` of the exact record bytes, as `0x`-prefixed hex |
 
-Each contract can have its own subname (`vault.example.eth`) whose `addr` record points to it. With ENSv2's PermissionedResolver, the protocol grants its release key a role for the `org.web3mcp.*` records only, so that key can update tools but cannot change address records.
+Protocols publish under a name they already own, such as `uniswap.eth`; Web3MCP never hands out subnames. One manifest covers all of a protocol's contracts through its `contracts` map, so subnames are optional. With ENSv2's PermissionedResolver, the name's owner can grant a release key a role for the `org.web3mcp.*` records only, so that key can update tools but nothing else on the name.
 
 Open question: if text records are too small or too costly for a full manifest, `org.web3mcp.manifest` becomes a pointer (`eip155:<chainId>:<storeAddress>`) and the digest stays in ENS.
 
@@ -60,9 +60,9 @@ Planned: `abiEncode(...)` for nested calldata such as Uniswap's Universal Router
 
 1. Resolve the name and read both records. Check the digest, then validate the manifest. Unknown fields, unknown aliases, undeclared inputs, wrong argument counts, and a read tool calling a state-changing function all fail discovery.
 2. For each contract: confirm code exists, that every declared function selector is present, and record a code fingerprint (and the EIP-1967 implementation for proxies).
-3. Trust level per contract:
-   - **Owner-verified**: the name's `addr` record points to the contract, and the contract's ENS primary name points back to the name.
-   - **Publisher-only**: only the forward record matches, as for third-party contracts. Hosts must show this label and ask for an extra confirmation.
+3. Trust level per contract. The manifest under the name is the forward link, because only the name's owner can list a contract there.
+   - **Owner-verified**: the contract's ENS primary name is the publishing name. The contract's owner sets it through the reverse registrar.
+   - **Name-only**: no primary name points back, for example because the contract has no owner. The publishing name is the only authority. Hosts must show this label and ask for an extra confirmation.
 
 ## 4. Writes
 
@@ -70,9 +70,18 @@ The host builds every step, simulates them together (`eth_simulateV1`), and show
 
 ## 5. Exposure over MCP
 
-The generic MCP server starts with two tools:
+The generic MCP server starts with these tools:
 
 - `discover(name)` loads a protocol and registers its tools, then sends `notifications/tools/list_changed`.
 - `call(tool, args)` runs a discovered tool, for clients that do not refresh their tool list.
+- `search(query)` (planned) finds published names by what they can do, through the Arkiv index (section 6).
 
 Discovered tools are named `<namespace>_<tool>` for reads and `tx_<namespace>_<tool>` for writes. The namespace is the first label of the ENS name. Reads carry `readOnlyHint: true`. Every description is prefixed with its publisher, because it is untrusted text.
+
+## 6. Search (Arkiv)
+
+Agents find protocols by what they can do, through an index on Arkiv:
+
+- Publishing writes one Arkiv entity per name, owned by the publisher's wallet: the ENS name, `chainId`, the manifest digest, and each tool's name and description.
+- Entities expire unless the publisher refreshes them, so abandoned protocols drop out of search. They stay usable by name.
+- The index only points to names. A host always reads and verifies the manifest from ENS (section 3) before using it, so a stale or fake entry cannot change what an agent runs.
