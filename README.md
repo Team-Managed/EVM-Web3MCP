@@ -71,6 +71,10 @@ cd contracts && forge test --fork-url https://ethereum-sepolia-rpc.publicnode.co
 
 It's live on Sepolia at [`0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C`](https://sepolia.etherscan.io/address/0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C), owned by `web3mcp.eth`. `agentswap.web3mcp.eth` points at it and holds its manifest, and its primary name points back, so discovery marks it owner-verified. It was deployed through the deterministic CREATE2 deployer and published from the owner's wallet on the local signing page. The constructor takes the owner, Uniswap's PoolManager and Quoter, Chainlink's ETH/USD feed, and Circle's USDC.
 
+## GiftBox (Sepolia)
+
+GiftBox is an independent ENSv2-based ETH/USDC gifting demo: an unlocked gift belongs to the name's current owner at claim time. It is deployed on Sepolia at `0x4dE77bbB49885C92e2149C9b06054886c848E842`. **`gifts.web3mcp.eth` is not yet ENS-published or discoverable.** See [GiftBox lifecycle, deployment evidence, tools and publication requirements](docs/GIFTBOX.md) and the [deployment manifest](manifests/sepolia/gifts.web3mcp.eth.json). The publisher checks ENSv2 permissions, simulates DNS-name record writes, and supports dry-run review or an explicitly confirmed browser-wallet handoff. Live publication has not been tested or authorized.
+
 ## Status
 
 Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes that are simulated, shown on a local signing page and signed in your own wallet. Uniswap quotes run through dry-run reads. The demo contract swaps on Uniswap v4 with a Chainlink price check and passes its tests on a Sepolia fork. It's deployed and published at `agentswap.web3mcp.eth`. Next: Arkiv search.

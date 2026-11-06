@@ -12,9 +12,12 @@
     "web3mcp-publish": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc -p ."
+    "build": "tsc -p .",
+    "test": "node --test \"test/*.test.ts\""
   },
   "dependencies": {
-    "@web3mcp/evm": "^0.0.1"
+    "@web3mcp/evm": "^0.0.1",
+    "@web3mcp/mcp": "^0.0.1",
+    "viem": "^2.57.16"
   }
 }

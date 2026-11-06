@@ -237,7 +237,7 @@ The shared SDK prepares and simulates write calls, including allowance checks an
 
 Simulation uses head minus two blocks. State and prices can change before signing; simulated asset changes do not guarantee actual USDC output or establish total gas cost. `status` checks receipt success for hashes reported by the page, but does not expose transfer logs or actual token changes. A current balance read alone cannot establish the amount received in a particular transaction. Successful receipt confirmation is not a finality-depth guarantee.
 
-Failed sequential execution can leave earlier steps completed. The failure-report path does not preserve transaction hashes as structured approval hashes; inspect wallet history before considering any authorized retry. Receipt lookup failures, including RPC errors, are currently surfaced as `not found on chain yet`; this does not prove a transaction was never broadcast.
+Failed sequential execution can leave earlier steps completed. The approval store retains reported transaction hashes on failure; the MCP status failure message does not yet enumerate them, so inspect wallet history before considering any authorized retry. A request with reported submissions cannot be resubmitted through the signing page. Receipt lookup failures, including RPC errors, are currently surfaced as `not found on chain yet`; this does not prove a transaction was never broadcast.
 
 ENS `owner-verified` means the contract's primary ENS name matches the publishing name or a subname; it is not a security audit. `name-only` means only the publisher vouches for the contract association. The verified ETH → USDC flow does not establish live USDC → ETH execution or wallet batching support.
 

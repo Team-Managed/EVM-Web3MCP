@@ -6,6 +6,13 @@ import type { PreparedCall, PreparedWrite, Protocol } from '@web3mcp/evm';
 
 export type ApprovalStatus = 'pending' | 'submitted' | 'rejected' | 'failed';
 
+/** Review metadata for locally prepared operations that are not ENS-discovered tools. */
+export interface ApprovalReview {
+  name: string;
+  chainId: number;
+  contracts: { alias: string; address: `0x${string}`; trust: string }[];
+}
+
 /** A prepared write waiting for the user to sign it in their own wallet, on the local signing page. */
 export interface Approval {
   id: string;
@@ -19,6 +26,7 @@ export interface Approval {
   status: ApprovalStatus;
   hashes: `0x${string}`[];
   error?: string;
+  sequential?: boolean;
 }
 
 const HASH = /^0x[0-9a-fA-F]{64}$/;
@@ -46,14 +54,22 @@ export class Approvals {
   constructor(
     private open: (url: string) => void = openInBrowser,
     private assets = new URL('./approve/', import.meta.url),
+    private beforeSign?: (id: string) => Promise<void>,
   ) {}
 
-  async create(prepared: PreparedWrite, protocol: Protocol, tool: string): Promise<{ id: string; url: string }> {
+  async create(prepared: PreparedWrite, protocol: Protocol, tool: string, options: { sequential?: boolean } = {}): Promise<{ id: string; url: string }> {
+    return this.createRequest(prepared, {
+      name: protocol.name, chainId: protocol.manifest.chainId,
+      contracts: Object.entries(protocol.contracts).map(([alias, c]) => ({ alias, address: c.address, trust: c.trust })),
+    }, tool, options);
+  }
+
+  async createRequest(prepared: PreparedWrite, review: ApprovalReview, tool: string, options: { sequential?: boolean } = {}): Promise<{ id: string; url: string }> {
     const id = randomBytes(16).toString('hex');
     this.approvals.set(id, {
       id,
-      chainId: protocol.manifest.chainId,
-      protocol: protocol.name,
+      chainId: review.chainId,
+      protocol: review.name,
       tool,
       account: prepared.account,
       calls: prepared.calls.map((c) => ({
@@ -68,9 +84,10 @@ export class Approvals {
         args: c.args,
       })),
       assetChanges: prepared.assetChanges,
-      trust: Object.entries(protocol.contracts).map(([alias, c]) => ({ alias, address: c.address, trust: c.trust })),
+      trust: review.contracts,
       status: 'pending',
       hashes: [],
+      ...(options.sequential ? { sequential: true } : {}),
     });
     const url = `${await this.start()}/approve/${id}`;
     this.open(url);
@@ -129,27 +146,34 @@ export class Approvals {
       return send(res, 200, type, await readFile(new URL(`.${path}`, this.assets)));
     }
 
-    const match = /^\/api\/approvals\/([0-9a-f]{32})$/.exec(path);
+    const match = /^\/api\/approvals\/([0-9a-f]{32})(\/preflight)?$/.exec(path);
     const approval = match && this.approvals.get(match[1]);
     if (!approval) return send(res, 404, 'text/plain', 'Not found');
-    if (req.method === 'GET') return send(res, 200, 'application/json', JSON.stringify(approval));
+    if (req.method === 'GET' && !match?.[2]) return send(res, 200, 'application/json', JSON.stringify(approval));
 
     // Writes must come from our own page: other websites can't send this Origin header.
     if (req.method !== 'POST' || req.headers.origin !== origin) return send(res, 403, 'text/plain', 'Forbidden');
     if (approval.status !== 'pending') return send(res, 409, 'text/plain', 'Already settled');
+    if (match?.[2]) {
+      await this.beforeSign?.(approval.id);
+      if (approval.status !== 'pending') return send(res, 409, 'text/plain', 'Already settled');
+      return send(res, 200, 'application/json', JSON.stringify({ ok: true }));
+    }
     const body = JSON.parse(await readBody(req)) as { status?: string; hashes?: unknown; error?: unknown };
-    if (body.status === 'submitted') {
-      const hashes = Array.isArray(body.hashes) ? body.hashes : [];
-      if (hashes.length === 0 || !hashes.every((h) => typeof h === 'string' && HASH.test(h))) {
-        return send(res, 400, 'text/plain', 'Bad transaction hashes');
-      }
-      approval.hashes = hashes as `0x${string}`[];
-    } else if (body.status !== 'rejected' && body.status !== 'failed') {
+    if (!['submitted', 'pending', 'rejected', 'failed'].includes(body.status ?? '')) {
       return send(res, 400, 'text/plain', 'Bad status');
     }
-    approval.status = body.status;
+    const hashes = body.hashes === undefined ? approval.hashes : body.hashes;
+    if (!Array.isArray(hashes) || hashes.length > approval.calls.length || new Set(hashes).size !== hashes.length ||
+        !hashes.every((h) => typeof h === 'string' && HASH.test(h)) ||
+        approval.hashes.some((h, i) => hashes[i] !== h) ||
+        (body.status === 'submitted' && hashes.length === 0) || (body.status === 'rejected' && hashes.length !== 0)) {
+      return send(res, 400, 'text/plain', 'Bad transaction hashes');
+    }
+    approval.hashes = hashes as `0x${string}`[];
+    approval.status = body.status as ApprovalStatus;
     if (typeof body.error === 'string') approval.error = body.error.slice(0, 500);
-    for (const done of this.waiters.get(approval.id) ?? []) done();
+    if (approval.status !== 'pending') for (const done of this.waiters.get(approval.id) ?? []) done();
     return send(res, 200, 'application/json', JSON.stringify(approval));
   }
 }
