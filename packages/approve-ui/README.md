@@ -2,7 +2,7 @@
 
 The local signing page. The MCP server opens it for every write at `http://127.0.0.1:<port>/approve/<id>`.
 
-It shows the protocol and each contract's trust level, every step in readable form, and the simulated balance changes. The user connects their own browser wallet (MetaMask, Rabby, or anything that injects `window.ethereum`), which must be the account the write was simulated for, and signs:
+It reads top to bottom as a route: your wallet, then each step in plain words ("Allow swap to use 5 USDC", "Swap USDC to ETH") with its contract, trust level and arguments as you typed them, then your simulated balance after. While you sign, each step shows whether it's waiting for your wallet, confirming on chain or done, with a link to its transaction. Raw calldata is folded under Technical details. The user connects their own browser wallet (MetaMask, Rabby, or anything that injects `window.ethereum`), which must be the account the write was simulated for, and signs:
 
 - One wallet prompt for all steps, through EIP-5792 `wallet_sendCalls`, when the wallet already supports batching. The page never asks a plain account to upgrade to a smart account.
 - Otherwise one transaction at a time, each confirmed before the next, so later steps see earlier ones.
