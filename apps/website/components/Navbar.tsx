@@ -91,7 +91,7 @@ export function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="w-full text-center px-4 py-2.5 rounded-full bg-[#FFFFFF] text-[#111316] text-xs font-sans font-bold uppercase tracking-wider"
             >
-              Protocol Spec
+              Documentation
             </a>
           </div>
         </div>

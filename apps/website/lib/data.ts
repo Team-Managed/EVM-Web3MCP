@@ -1,10 +1,10 @@
 import type { NavItem, ProtocolStep, TrustInvariant, GuaranteeCard, FaqItem } from "./types";
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Integrate", href: "#choose-path" },
-  { label: "Security", href: "#guarantees" },
-  { label: "FAQ", href: "#faq" },
+  { label: "How It Works", href: "/#how-it-works" },
+  { label: "Integrate", href: "/#choose-path" },
+  { label: "Security", href: "/#guarantees" },
+  { label: "FAQ", href: "/#faq" },
 ];
 
 export const PROTOCOL_STEPS: ProtocolStep[] = [
@@ -167,13 +167,13 @@ export const FAQ_ITEMS: FaqItem[] = [
     question: "Do protocols have to host an MCP server?",
     category: "Architecture",
     answer:
-      "No. The protocol is designed to be serverless for publishers: publish the manifest and digest as ENS text records, then let a generic host discover the tools. The current @web3mcp/evm package provides strict manifest validation; the remaining discovery and execution pieces are still being implemented.",
+      "No. Publishers put the manifest and digest in ENS text records; the generic host discovers, verifies, reads, simulates, and hands writes to the user wallet. A development-only manifest directory is also available for fixture testing.",
   },
   {
     question: "Can an AI agent sign transactions or move funds?",
     category: "Security",
     answer:
-      "No. The model must never receive or use a private key. In the protocol design, writes are validated, simulated with eth_simulateV1, shown with decoded calls and balance deltas, and handed to the user’s wallet for approval. The signing UI is part of the planned execution flow, not a claim that every integration is complete today.",
+      "No. The model never receives or uses a private key. Writes are validated, simulated with eth_simulateV1, shown with decoded calls and asset changes, and handed to the user’s local signing page for wallet approval.",
   },
   {
     question: "Why is ENS the source of truth?",
@@ -191,6 +191,6 @@ export const FAQ_ITEMS: FaqItem[] = [
     question: "What is implemented today?",
     category: "Integration",
     answer:
-      "The SDK currently validates manifests against the strict v0.1-evm schema, including contract aliases, tool kinds, ABI signatures, argument counts, mutability, and bindings. ENS discovery, direct reads, write preparation, simulation, and wallet handoff are protocol-defined next steps rather than completed features. The supported chain and wallet matrix will be documented as those integrations ship.",
+      "The SDK discovers and verifies ENS manifests, checks contract code and trust, executes reads, prepares and simulates writes, and returns a local wallet signing handoff. The MCP server also reports write status. The current tested integration targets Ethereum Sepolia; configure a compatible chain client and RPC for other EVM deployments.",
   },
 ];
