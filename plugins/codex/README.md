@@ -1,9 +1,9 @@
 # Web3MCP for Codex
 
-Add the MCP server:
+Add the MCP server. It's the same single-file build the Claude Code plugin ships, so a clone of this repo and Node 22+ are all it needs:
 
 ```bash
-codex mcp add web3mcp -- npx -y @web3mcp/mcp@0.0.1
+codex mcp add web3mcp -- node /path/to/EVM-Web3MCP/plugins/claude-code/server/web3mcp.mjs
 ```
 
 Then, in `~/.codex/config.toml`, give it your wallet so writes can be simulated, and make Codex ask before anything that isn't a read. Discovered read tools are marked read-only, so they run without a prompt:

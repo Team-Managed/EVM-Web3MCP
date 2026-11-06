@@ -35,5 +35,5 @@ Follow these strictly.
 4. **Small, frequent commits.** ETHGlobal reads the git history. Note AI assistance in every AI-assisted commit message, per ETHGlobal's AI policy.
 5. **No secrets, ever.** Never commit private keys, seed phrases, wallet files, API keys or `.env` files. Deploy contracts with a Foundry keystore, not a private key in `.env`.
 6. **Mark shortcuts.** Write any known limitation as a `shortcut: <limit>, <when to fix>` comment. `grep -r "shortcut:"` lists what's left.
-7. **Release together.** Publish `@web3mcp/evm` and `@web3mcp/mcp` to npm together. The plugin pins the server's version, so bump both in the same commit.
+7. **Commit the plugin bundle.** The Claude Code plugin ships the server as one file, `plugins/claude-code/server/`, which `npm run build` regenerates. Commit it with any change to the SDK, server or signing page; CI fails when it's stale.
 8. **Agent files stay local.** Never commit agent planning or tracking files: plans, specs or notes written for agents, task lists, trackers, scratch files, session memory, `.claude/`, `.codex/`, `.agents/`, `CLAUDE.local.md`. Keep them on your own machine. Only product and project files go in the repo. This file and `CLAUDE.md` are the only agent files in the repo; change them only when the team agrees.
