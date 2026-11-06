@@ -95,8 +95,8 @@ async function swapSetup(read: FakeChain['read']) {
         'function ethPrice()',
         'function quoteEthToUsdc(uint128)',
         'function quoteUsdcToEth(uint128)',
-        'function swapEthToUsdc(address)',
-        'function swapUsdcToEth(uint256,address)',
+        'function swapEthToUsdc(uint256,address)',
+        'function swapUsdcToEth(uint256,uint256,address)',
       ),
       [SWAP_USDC.toLowerCase()]: codeWith('function balanceOf(address)', 'function decimals()', 'function approve(address,uint256)'),
     },
@@ -118,20 +118,23 @@ test('a dry-run read, like a Uniswap quote, runs and formats with fixed decimals
 });
 
 test('an ether input is sent as the call value', async () => {
-  const { client, protocol } = await swapSetup(() => undefined);
-  const prepared = await prepareWrite(client, protocol, 'eth_to_usdc', { amount: '0.001', recipient: RIYA }, RIYA);
+  const { client, protocol } = await swapSetup((fn) => ({ decimals: 6 })[fn]);
+  const prepared = await prepareWrite(client, protocol, 'eth_to_usdc', { amount: '0.001', min_usdc: '24', recipient: RIYA }, RIYA);
   assert.deepEqual(prepared.calls.map((c) => [c.to, c.value]), [[SWAP, 10n ** 15n]]);
   await assert.rejects(
-    prepareWrite(client, protocol, 'eth_to_usdc', { amount: '0.0000000000000000001', recipient: RIYA }, RIYA),
+    prepareWrite(client, protocol, 'eth_to_usdc', { amount: '0.0000000000000000001', min_usdc: '24', recipient: RIYA }, RIYA),
     /more decimal places than ETH supports \(18\)/,
   );
 });
 
 test('each step says what it does in readable parts', async () => {
-  const { client, protocol } = await swapSetup(() => undefined);
-  const prepared = await prepareWrite(client, protocol, 'eth_to_usdc', { amount: '0.001', recipient: 'riya.eth' }, RIYA);
+  const { client, protocol } = await swapSetup((fn) => ({ decimals: 6 })[fn]);
+  const prepared = await prepareWrite(client, protocol, 'eth_to_usdc', { amount: '0.001', min_usdc: '24.5', recipient: 'riya.eth' }, RIYA);
   const [step] = prepared.calls;
-  assert.equal(step.description, 'swap.swapEthToUsdc(riya.eth)');
+  assert.equal(step.description, 'swap.swapEthToUsdc(24.5 USDC, riya.eth)');
   assert.deepEqual([step.kind, step.contract, step.method], ['call', 'swap', 'swapEthToUsdc']);
-  assert.deepEqual(step.args, [{ name: 'recipient', value: 'riya.eth', address: RIYA }]);
+  assert.deepEqual(step.args, [
+    { name: 'minUsdcOut', value: '24.5 USDC' },
+    { name: 'recipient', value: 'riya.eth', address: RIYA },
+  ]);
 });
