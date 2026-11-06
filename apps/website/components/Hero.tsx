@@ -30,7 +30,7 @@ export function Hero() {
 
         {/* Minimal Centered Eyebrow */}
         <div className="inline-flex items-center gap-2 mb-5 sm:mb-6 font-sans text-xs uppercase tracking-widest text-[#111316] font-semibold select-text">
-          <span>❖ Web3MCP Protocol • Open Standard for EVM</span>
+          <span>Web3MCP Protocol • Open Standard for EVM</span>
         </div>
 
         {/* Centric Hero Headline matching Handhold Billboard Typography */}

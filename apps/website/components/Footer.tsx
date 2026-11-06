@@ -32,7 +32,7 @@ export function Footer() {
 
           <div>
             <div className="inline-flex items-center gap-2 mb-2 font-sans text-[11px] uppercase tracking-widest text-[#111316] font-semibold select-text">
-              <span>❖ Web3MCP Standard • Open EVM Protocol</span>
+              <span>Web3MCP Standard • Open EVM Protocol</span>
             </div>
             <h3 className="font-editorial text-2xl sm:text-3xl text-[#111316] font-normal tracking-tight select-text">
               Turn Smart Contracts Into Agent Tools.
@@ -64,14 +64,8 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 py-8 border-b border-[#E2DFD7]">
           {/* Brand & Mission */}
           <div className="md:col-span-2 space-y-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 bg-[#16181B] text-[#FAF9F6] flex items-center justify-center font-sans text-xs font-bold select-none">
-                ❖
-              </div>
+            <div className="flex items-center">
               <span className="font-sans text-lg font-bold tracking-tight text-[#111316]">Web3MCP</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 bg-[#FAF9F6] border border-[#16181B] text-[#111316] font-semibold">
-                v0.1-evm
-              </span>
             </div>
             <p className="max-w-md text-xs text-[#5A5D64] leading-relaxed font-sans">
               The open protocol connecting EVM smart contracts with AI assistants. Built for ETHGlobal Mumbai 2026.

@@ -19,16 +19,10 @@ export function Navbar() {
     <div className="sticky top-4 z-50 px-4 sm:px-6 w-full flex flex-col items-center pointer-events-none">
       <header className="pointer-events-auto w-full max-w-5xl bg-[#111316]/95 backdrop-blur-xl border border-white/10 rounded-full px-5 sm:px-6 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.35)] transition-all duration-200">
         <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-5 h-5 bg-[#FAF9F6] text-[#111316] rounded-full flex items-center justify-center font-sans text-xs font-bold select-none">
-              ❖
-            </div>
+          {/* Brand */}
+          <Link href="/" className="flex items-center group">
             <span className="font-sans font-bold tracking-tight text-base sm:text-lg text-[#FAF9F6]">
               Web3MCP
-            </span>
-            <span className="hidden sm:inline-block font-sans text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/10 text-[#A0A4AE] border border-white/10">
-              v0.1-evm
             </span>
           </Link>
 
