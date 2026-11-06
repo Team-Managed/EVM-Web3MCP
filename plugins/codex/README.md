@@ -171,14 +171,14 @@ The integration test launches the actual stdio server and checks registered read
 
 ## Manual live verification
 
-The repository documents AgentSwap at `agentswap.web3mcp.eth` on Ethereum Sepolia (`11155111`), contract `0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C`. This is deployment information, not proof that your current runtime has reached ENS or executed a tool.
+The repository documents AgentSwap at `agentswap.web3mcp.eth` on Ethereum Sepolia (`11155111`), contract `0xE17021E2fd5Dd0A6608293E7Ac5E3c361ae30e58`. This is deployment information, not proof that your current runtime has reached ENS or executed a tool.
 
 1. Enable live mode, select a Sepolia HTTP(S) RPC, refresh the installed skill copy, and restart Codex. If preserving a fixture registration, use a separate live registration and explicitly select that server for every step; do not mix discovery or signing IDs across servers.
 2. Ask `$web3mcp` to call `discover` with `{"name":"agentswap.web3mcp.eth"}`. Check that the response says `from ENS`, reports chain `11155111`, and identifies the swap contract above. Inspect actual trust labels; do not infer them from this document.
 3. Confirm these registered tools: `agentswap_eth_price`, `agentswap_quote_eth_to_usdc`, `agentswap_quote_usdc_to_eth`, `agentswap_usdc_balance`, `tx_agentswap_eth_to_usdc`, and `tx_agentswap_usdc_to_eth`. The server also exposes `discover`, `call`, and `status`.
 4. Run `agentswap_eth_price` with `{}`, then the quote tools with `{"amount":"0.001"}` ETH and `{"amount":"1"}` USDC respectively. Quotes are dry-run `eth_call` reads, even though the quote functions are non-view. Run `agentswap_usdc_balance` with `{"owner":"<your public address>"}`, replacing the placeholder. Inspect actual results. Use `call({tool, args})` only if dynamic tools are absent, checking the registered schema first.
 5. To verify failure isolation, discover a fixture name that the publisher confirms has no live publication: expect an error, never local-fixture discovery.
-6. Before a write, set `WEB3MCP_ACCOUNT` to the public address or normalized ENS name of the wallet that will sign, restart the server, and rediscover. Ensure suitable Sepolia balances and gas. Explain the exact swap, amount, recipient, and expected costs, then obtain explicit approval before calling the write tool. Both swap tools require `amount` and `recipient`; supply the user's own public address unless they explicitly choose another recipient.
+6. Before a write, set `WEB3MCP_ACCOUNT` to the public address or normalized ENS name of the wallet that will sign, restart the server, and rediscover. Ensure suitable Sepolia balances and gas. Explain the exact swap, amount, recipient, and expected costs, then obtain explicit approval before calling the write tool. ETH → USDC requires `amount`, `min_usdc` and `recipient`; USDC → ETH requires `amount`, `min_eth` and `recipient`. Quote first and set the minimum about 1% below the quote. Supply the user's own public address unless they explicitly choose another recipient.
 7. The shared SDK simulates first, requiring RPC support for `eth_simulateV1` and asset-tracing state overrides. On failure, report the error and stop. The contract may reject swaps more than 3% below Chainlink's price; do not bypass this check. On success, the tool returns a review, signing-page URL, and request ID, and attempts to open the browser. This is a signing handoff, not a simulation-only tool.
 8. The user opens the returned `http://127.0.0.1:<port>/approve/<id>` URL if necessary, reviews the steps, connects an injected browser wallet matching the simulated account, and chooses whether to sign on Sepolia. Never control the wallet approval for them. To test rejection first, reject on the page and check its status; a later attempt needs a new write request.
 9. Call `status({"id":"<returned request ID>"})` on the same MCP server. It waits up to 25 seconds for the page and reports pending, rejected, failed, or signed transactions with receipt results and explorer links. Repeat while waiting as needed. Distinguish submitted/not-found receipts from confirmed success; inspect reverted results. Keep the MCP server running throughout.
@@ -189,13 +189,13 @@ Automated tests are offline: they cover configuration, fixture preservation, and
 
 Establish the exact live write schema from the tools registered after successful ENS discovery, including input names, types, and units. Discovery's text response lists tool names, not schemas. If dynamic tools are absent, the documented fallback is `call({tool, args})` on that same server; it does not apply the dynamic tool's Zod input schema. Inspect the repository's [input schema builder](../../packages/mcp/src/server.ts), [SDK bindings](../../packages/sdk/src/execute.ts), and [AgentSwap declaration](../../spec/fixtures/valid/agentswap.web3mcp.eth.json) to understand the implementation. A fixture alone does not prove the current ENS declaration. Resolve any discrepancy or uncertainty before invoking a write; do not guess arguments or probe by creating requests.
 
-The ETH → USDC tool requires two strings, `amount` and `recipient`:
+The ETH → USDC tool requires three strings, `amount`, `min_usdc` and `recipient`:
 
 ```json
-{"amount":"0.001","recipient":"<public Sepolia address>"}
+{"amount":"0.001","min_usdc":"24.8","recipient":"<public Sepolia address>"}
 ```
 
-Replace the recipient placeholder before invoking `tx_agentswap_eth_to_usdc`. `amount` is decimal ETH, not wei: `"0.001"` becomes `1000000000000000` wei. The SDK uses this as the transaction value for the payable `swapEthToUsdc(address recipient)` function on the swap contract above. USDC → ETH amounts are decimal USDC strings instead.
+Get `min_usdc` from `agentswap_quote_eth_to_usdc` first: about 1% below the quote. The contract refuses a swap that pays less, so nobody can move the price between the quote and the swap. Replace the recipient placeholder before invoking `tx_agentswap_eth_to_usdc`. `amount` is decimal ETH, not wei: `"0.001"` becomes `1000000000000000` wei. The SDK uses this as the transaction value for the payable `swapEthToUsdc(uint256 minUsdcOut, address recipient)` function on the swap contract above. USDC → ETH takes `amount` in decimal USDC and `min_eth` in decimal ETH.
 
 After explicit authorization for write preparation, invoke the tool once. The SDK simulates first; successful preparation creates a pending local signing request and the server automatically attempts to open its review page. No simulation-only or suppress-browser option is exposed by this launcher. Opening the page neither signs nor broadcasts a transaction.
 
@@ -205,7 +205,7 @@ The user manually connects MetaMask or another supported injected wallet, checks
 
 This is a historical manual verification snapshot, not a guarantee about a future runtime or RPC provider. Live Sepolia ENS discovery, Chainlink price and AgentSwap quote reads, ETH → USDC simulation, rejection with MCP status verification, and manual MetaMask signing/submission with MCP on-chain receipt confirmation passed. The default Thirdweb Sepolia RPC passed `eth_simulateV1` and Viem compatibility probes. Build, typecheck, and 41 automated tests passed (26 SDK, 9 MCP, 6 Codex); these automated checks are separate from the manual live flow.
 
-Confirmed Sepolia transaction: [0x4da6a4d4e941f0a1c5ceec42cd3662088580fa674b4ba3ba61aebd2035d9c63c](https://sepolia.etherscan.io/tx/0x4da6a4d4e941f0a1c5ceec42cd3662088580fa674b4ba3ba61aebd2035d9c63c).
+Confirmed Sepolia transaction, on the first AgentSwap deployment (`0x5605…6E3C`, since replaced by one that takes a minimum): [0x4da6a4d4e941f0a1c5ceec42cd3662088580fa674b4ba3ba61aebd2035d9c63c](https://sepolia.etherscan.io/tx/0x4da6a4d4e941f0a1c5ceec42cd3662088580fa674b4ba3ba61aebd2035d9c63c).
 
 The reported `+25.075462 USDC` was a simulated result. Actual received USDC was not independently verified through MCP. The tested flow reported the swap contract as `owner-verified` and USDC as `name-only`.
 
@@ -250,7 +250,7 @@ ENS `owner-verified` means the contract's primary ENS name matches the publishin
 - Missing/incompatible RPC: confirm the endpoint serves Sepolia (`11155111`), is reachable, and supports the required methods. Empty/unset RPC URL selects viem's default; startup does not verify its chain ID.
 - `eth_simulateV1` unsupported: ordinary reads do not establish simulation support. Verify capability non-transactionally or choose a compatible Sepolia RPC; do not bypass simulation.
 - ENS discovery unavailable: check live mode and the publisher's `org.web3mcp.manifest`/`org.web3mcp.digest` text records. Live failures never use fixtures. If a contract fingerprint changed, rediscover and re-review before a newly authorized write.
-- Oracle or swap errors: stop on stale Chainlink prices (maximum age three hours), the 3% price guard, insufficient funds, or insufficient liquidity. Do not bypass guards; a simulation failure is not permission to retry.
+- Oracle or swap errors: stop on stale Chainlink prices (maximum age 75 minutes), your own minimum ("the price moved below your minimum"), the 3% price guard, insufficient funds, or insufficient liquidity. Do not bypass guards; a simulation failure is not permission to retry.
 - Missing wallet or wrong MetaMask network: the user must install/enable an injected wallet in the browser displaying the page and select or approve switching to Sepolia themselves.
 - Browser did not open: the user can open the exact returned local approval URL manually while the server is running. Browser opening alone does not submit anything.
 - `No signing request with id …`: use the exact returned ID on the same server instance. Restarting the server loses approval records. Do not infer rejection or create a replacement without authorization.

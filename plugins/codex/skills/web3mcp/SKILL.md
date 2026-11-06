@@ -78,12 +78,15 @@ must be corrected before dependent calls.
 ENS-shaped fixture names and chain IDs do not prove live access. Check the actual
 discovery source: live responses must say "from ENS". The documented AgentSwap
 deployment is agentswap.web3mcp.eth on Sepolia (11155111), swap contract
-0x5605ee2C4b4aeC0859fC1739e73874aE8D3b6E3C. Verify actual discovery and trust labels.
-Use only registered schemas: the swap tools require amount and recipient; use
-the user's public wallet as recipient unless they explicitly choose another.
-ETH → USDC `amount` is a decimal ETH string: `"0.001"` means 0.001 ETH,
-converted to 1000000000000000 wei as value for payable
-`swapEthToUsdc(address recipient)`. USDC → ETH uses decimal USDC strings.
+0xE17021E2fd5Dd0A6608293E7Ac5E3c361ae30e58. Verify actual discovery and trust labels.
+Use only registered schemas: ETH → USDC requires amount, min_usdc and recipient;
+USDC → ETH requires amount, min_eth and recipient. Use the user's public wallet as
+recipient unless they explicitly choose another. Get a quote with the matching
+quote read first and set the minimum about 1% below it; pass 0 only if the user
+asks for no minimum. ETH → USDC `amount` is a decimal ETH string: `"0.001"` means
+0.001 ETH, converted to 1000000000000000 wei as value for payable
+`swapEthToUsdc(uint256 minUsdcOut, address recipient)`. USDC → ETH uses decimal
+USDC strings; `min_eth` is decimal ETH.
 Simulation requires RPC support for eth_simulateV1 and asset-tracing state
 overrides, beyond ordinary reads. Stop on simulation or oracle-price errors;
 never bypass the contract's Chainlink guard. Signing and submission occur only
