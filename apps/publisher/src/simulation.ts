@@ -4,10 +4,10 @@ export type SimulationClient = Pick<PublicClient, 'getBlockNumber' | 'getTransac
 export const TRANSACTION_GAS_CAP = 16_777_216n;
 type Call = { to: Address; data: Hex; value?: bigint; gas?: bigint };
 
-/** Simulate only the actual writes: no simulateCalls sentinel or asset probes. */
+/** Simulate only the actual writes, in order: no simulateCalls sentinel or asset probes. */
 export async function simulatePublication(client: SimulationClient, account: Address, calls: readonly Call[]) {
-  if (calls.length !== 2) throw new Error('Publication requires exactly two record writes.');
-  const blockNumber = await client.getBlockNumber({ cacheTime: 0 });
+  // Two blocks back, like the SDK: load-balanced public RPCs answer "block not found" for the newest block.
+  const blockNumber = (await client.getBlockNumber({ cacheTime: 0 })) - 2n;
   const [nonce, fees, balance] = await Promise.all([
     client.getTransactionCount({ address: account, blockNumber }),
     client.estimateFeesPerGas({ type: 'eip1559', chain: undefined }),

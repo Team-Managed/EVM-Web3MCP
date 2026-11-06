@@ -1,4 +1,5 @@
 import { Approvals } from '@web3mcp/mcp/approvals';
+import { messageOf } from './message.js';
 import { revalidatePublication, verifyPublication, type Publication, type PublicationClient } from './publication.js';
 
 export interface PublicationSessionOptions {
@@ -23,14 +24,15 @@ export async function runPublication(client: PublicationClient, publication: Pub
   try {
     const reviewProtocol = { ...publication.protocol, contracts: { ...publication.protocol.contracts,
       resolver: { address: publication.options.resolver, trust: 'name-only' as const, fingerprint: publication.snapshots[publication.options.resolver] } } };
-    const request = await approvals.create(publication.prepared, reviewProtocol, 'publish_manifest', { sequential: true });
+    const request = await approvals.create(publication.prepared, reviewProtocol, 'publish_manifest');
     options.onCreated?.(request);
     let outcome = approvals.get(request.id)!;
     while (outcome.status === 'pending' && Date.now() < deadline) {
       outcome = (await approvals.wait(request.id, Math.min(25_000, Math.max(1, deadline - Date.now()))))!;
     }
-    const result = await verifyPublication(client, publication, outcome);
-    return { ...result, requestId: request.id, requestStatus: outcome.status,
+    // Keep the hashes in the result even when verification fails, so the user can always find what was sent.
+    const result = await verifyPublication(client, publication, outcome).catch(e => ({ status: 'unverified', error: messageOf(e) }));
+    return { ...result, requestId: request.id, requestStatus: outcome.status, hashes: outcome.hashes,
       ...(outcome.status === 'pending' ? { warning: 'Timed out. An in-flight wallet prompt may still submit; check wallet history before any new request.' } : {}) };
   } finally {
     approvals.close();

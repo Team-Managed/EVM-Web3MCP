@@ -92,7 +92,8 @@ export async function prepareDeployment(client: DeploymentClient, reviewedGasLim
   if (gas < suggested || gas >= TRANSACTION_GAS_CAP || gas <= 0n) throw new Error('Deployment exceeds the cap or reviewed gas margin. Prepare a new review.');
   const balance = await client.getBalance({ address: DEPLOYMENT.account });
   if (balance < gas * maxFeePerGas) throw new Error('Insufficient wallet balance for the gas budget.');
-  const blockNumber = await client.getBlockNumber({ cacheTime: 0 });
+  // Two blocks back, like the SDK: load-balanced public RPCs answer "block not found" for the newest block.
+  const blockNumber = (await client.getBlockNumber({ cacheTime: 0 })) - 2n;
   const nonce = await client.getTransactionCount({ address: DEPLOYMENT.account, blockNumber });
   const simulation = await client.request({ method: 'eth_simulateV1', params: [{ validation: true, blockStateCalls: [{ calls: [{
     from: DEPLOYMENT.account, to: DEPLOYMENT.factory, data: plan.data, value: '0x0', nonce: toHex(nonce), gas: toHex(gas),

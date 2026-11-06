@@ -4,6 +4,7 @@ import { createPublicClient, http, isHash, keccak256, type Hex } from 'viem';
 import { sepolia } from 'viem/chains';
 import { Approvals } from '@web3mcp/mcp/approvals';
 import { DEPLOYMENT, prepareDeployment, verifyDeployment } from './deployment.js';
+import { messageOf } from './message.js';
 
 // Default is read-only. Only the user's --open command and typed confirmation
 // may create a local request; the browser wallet is the sole broadcaster.
@@ -38,7 +39,7 @@ try {
       });
       try {
         const request = await approvals.createRequest(plan.prepared, { name: plan.prepared.protocol, chainId: DEPLOYMENT.chainId,
-          contracts: [{ alias: 'create2_factory', address: DEPLOYMENT.factory, trust: 'name-only' }] }, 'deploy_giftbox', { sequential: true });
+          contracts: [{ alias: 'create2_factory', address: DEPLOYMENT.factory, trust: 'name-only' }] }, 'deploy_giftbox');
         console.log(`Local review: ${request.url}\nRequest ID: ${request.id}\nConnect your expected MetaMask account on Sepolia; review the factory, zero value, data and gas before manually signing.`);
         let outcome = approvals.get(request.id)!;
         while (outcome.status === 'pending' && Date.now() < deadline) {
@@ -50,8 +51,7 @@ try {
       } finally { approvals.close(); }
     }
   }
-} catch {
-  // Provider errors can contain credentials and complete calldata; do not dump them.
-  console.error('GiftBox deployment checks/verification failed. Recheck the reviewed artifact, chain, factory, address vacancy and gas budget. If a wallet prompt was opened, inspect wallet history before retrying. No automatic broadcast is performed.');
+} catch (e) {
+  console.error(messageOf(e));
   process.exitCode = 1;
 }

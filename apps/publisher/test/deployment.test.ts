@@ -32,6 +32,6 @@ test('non-interactive deployment cannot open a review page or reach wallet promp
   const cli = fileURLToPath(new URL('../dist/deploy-giftbox.js', import.meta.url));
   const result = spawnSync(process.execPath, [cli, '--open'], { encoding: 'utf8', timeout: 3000 });
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /checks\/verification failed/);
+  assert.match(result.stderr, /requires an interactive terminal/);
   assert.doesNotMatch(result.stdout, /Local review:/);
 });

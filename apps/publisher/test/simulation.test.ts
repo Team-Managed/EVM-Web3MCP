@@ -25,7 +25,7 @@ test('actual viem transport emits exactly two fee-funded, bounded transactions w
   assert.equal(simulations.length, 2);
   for (const [index, request] of simulations.entries()) {
     const [body, block] = request.params as [{ validation: boolean; blockStateCalls: { calls: Record<string, string>[] }[] }, string];
-    assert.equal(body.validation, true); assert.equal(block, '0x64');
+    assert.equal(body.validation, true); assert.equal(block, '0x62');
     assert.equal(body.blockStateCalls.length, 1); assert.equal(body.blockStateCalls[0].calls.length, 2);
     body.blockStateCalls[0].calls.forEach((call, i) => {
       assert.equal(call.from, account); assert.equal(call.to, to); assert.equal(call.data, calls[i].data);

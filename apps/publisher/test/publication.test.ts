@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { decodeFunctionData, parseAbi, toFunctionSelector, type Address, type Hex } from 'viem';
 import { Approvals } from '@web3mcp/mcp/approvals';
-import { giftBoxManifest } from '../src/giftbox.ts';
+import { readFileSync } from 'node:fs';
+import { validateManifest } from '@web3mcp/evm';
 import { preparePublication, revalidatePublication, verifyPublication, type PublicationClient } from '../dist/publication.js';
 import { runPublication } from '../dist/session.js';
 
@@ -17,10 +18,12 @@ const other = '0x0000000000000000000000000000000000100008' as Address;
 const zero = '0x0000000000000000000000000000000000000000';
 const hash1 = `0x${'ab'.repeat(32)}` as Hex, hash2 = `0x${'cd'.repeat(32)}` as Hex;
 const options = { account, root, resolver, owner, usdc };
+const real = JSON.parse(readFileSync(new URL('../../../manifests/sepolia/gifts.web3mcp.eth.json', import.meta.url), 'utf8'));
+const gifts = (giftbox: string, token: string) => ({ ...real, contracts: { giftbox, usdc: token } });
 
 function fixture() {
-  const manifest = giftBoxManifest(box, usdc);
-  const signatures = manifest.tools.flatMap(t => t.kind === 'read' ? [t.call.function] : t.steps.flatMap(s => 'call' in s ? [s.call.function] : []));
+  const manifest = gifts(box, usdc);
+  const signatures = validateManifest(manifest).tools.flatMap(t => t.kind === 'read' ? [t.call.function] : t.steps.flatMap(s => 'call' in s ? [s.call.function] : []));
   const code = (`0x6080${signatures.map(s => toFunctionSelector(s).slice(2)).join('')}${toFunctionSelector('approve(address,uint256)').slice(2)}${toFunctionSelector('decimals()').slice(2)}`) as Hex;
   const state = { chain: 11155111, currentOwner: owner, resolved: resolver, token: usdc, immutableRoot: root,
     supports: true, allow: true, deniedKey: '', noCode: '', simulationFails: false, changed: false,
@@ -44,13 +47,13 @@ function fixture() {
       if (fn === 'findOwner') return state.currentOwner;
       if (fn === 'getResolver') return address === root ? zero : resolver;
       if (fn === 'getSubregistry') return address === root ? eth : zero;
-      if (fn === 'supportsInterface') return args[0] !== '0xffffffff' && state.supports;
+      // Like the live ENSv2 PermissionedResolver: reads go through resolve(bytes,bytes), and text(bytes32,string) isn't offered.
+      if (fn === 'supportsInterface') return args[0] !== '0xffffffff' && args[0] !== toFunctionSelector('text(bytes32,string)') && state.supports;
       if (fn === 'hasRootRoles') return false;
       if (fn === 'hasRoles') {
         const { keccak256, toBytes } = await import('viem');
         return state.allow && args[2] === account && (!state.deniedKey || args[0] !== BigInt(keccak256(toBytes(state.deniedKey))));
       }
-      if (fn === 'text') return state.records.get(String(args[1])) ?? '';
       throw new Error(`Unexpected read ${fn}`);
     },
     request: async (input: { method: string; params: [{ blockStateCalls: { calls: { from: Address }[] }[] }] }) => {
@@ -75,9 +78,10 @@ function fixture() {
 test('DNS setter encoding, signer simulation and explicit nearest-owner scope', async () => {
   const { client, manifest, state } = fixture();
   const p = await preparePublication(client, manifest, options);
-  assert.equal(p.ownerName, 'web3mcp.eth'); assert.equal(p.plan.calls.length, 2);
-  const abi = parseAbi(['function setText(bytes,string,string)']);
-  const decoded = decodeFunctionData({ abi, data: p.plan.calls[0].data });
+  assert.equal(p.ownerName, 'web3mcp.eth'); assert.equal(p.plan.calls.length, 1);
+  const abi = parseAbi(['function multicall(bytes[])', 'function setText(bytes,string,string)']);
+  const [first] = decodeFunctionData({ abi, data: p.plan.calls[0].data }).args![0] as Hex[];
+  const decoded = decodeFunctionData({ abi, data: first });
   assert.equal(decoded.args![0], '0x05676966747307776562336d63700365746800');
   assert.equal(decoded.args![1], 'org.web3mcp.manifest');
   assert.equal(state.simulations.length, 2);
@@ -102,7 +106,7 @@ test('fails closed for unsupported resolver, missing code, fixture, bad manifest
     if (scenario === 'bytecode') f.state.noCode = box;
     if (scenario === 'token') f.state.token = other;
     if (scenario === 'root') f.state.immutableRoot = other;
-    const m = scenario === 'fixture' ? giftBoxManifest('0x0000000000000000000000000000000000000003', usdc) : scenario === 'manifest' ? {} : f.manifest;
+    const m = scenario === 'fixture' ? gifts('0x0000000000000000000000000000000000000003', usdc) : scenario === 'manifest' ? {} : f.manifest;
     await assert.rejects(preparePublication(f.client, m, options));
     assert.equal(f.state.simulations.length, 0);
   }
@@ -120,30 +124,30 @@ test('simulation failure prevents any handoff and preflight rejects code or owne
   await assert.rejects(revalidatePublication(f.client, p), /owner/);
 });
 
-test('receipts bind signer/target/calldata and exact read-back; partial/rejected never confirm', async () => {
+test('receipts bind signer/target/calldata and exact read-back; failed/rejected never confirm', async () => {
   const f = fixture(), p = await preparePublication(f.client, f.manifest, options);
-  f.state.transactions.set(hash1, p.plan.calls[0]); f.state.transactions.set(hash2, p.plan.calls[1]);
+  f.state.transactions.set(hash1, p.plan.calls[0]);
   assert.equal((await verifyPublication(f.client, p, { status: 'rejected', hashes: [] })).status, 'rejected');
-  assert.equal((await verifyPublication(f.client, p, { status: 'failed', hashes: [hash1] })).status, 'partial');
+  assert.equal((await verifyPublication(f.client, p, { status: 'failed', hashes: [] })).status, 'failed');
   f.state.missingReceipt = true;
-  assert.notEqual((await verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1, hash2] })).status, 'confirmed');
+  assert.notEqual((await verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1] })).status, 'confirmed');
   f.state.missingReceipt = false;
-  await assert.rejects(verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1, hash2] }), /read-back/);
+  await assert.rejects(verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1] }), /read-back/);
   p.plan.records.forEach(r => f.state.records.set(r.key, r.value));
-  assert.equal((await verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1, hash2] })).status, 'confirmed');
+  assert.equal((await verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1] })).status, 'confirmed');
   f.state.wrongReadback = true;
-  await assert.rejects(verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1, hash2] }), /read-back/);
+  await assert.rejects(verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1] }), /read-back/);
   f.state.wrongReadback = false; f.state.wrongReceipt = true;
-  await assert.rejects(verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1, hash2] }), /Receipt hash/);
+  await assert.rejects(verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1] }), /Receipt hash/);
   f.state.wrongReceipt = false;
   await assert.rejects(verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1, hash1] }), /duplicates/);
   for (const field of ['txSigner', 'txTarget', 'txWrongData'] as const) {
     const prior = f.state[field]; Object.assign(f.state, { [field]: field === 'txWrongData' ? true : other });
-    await assert.rejects(verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1, hash2] }), /does not match/);
+    await assert.rejects(verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1] }), /does not match/);
     Object.assign(f.state, { [field]: prior });
   }
   f.state.reverted = true;
-  assert.notEqual((await verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1, hash2] })).status, 'confirmed');
+  assert.notEqual((await verifyPublication(f.client, p, { status: 'submitted', hashes: [hash1] })).status, 'confirmed');
 });
 
 test('independent confirmation can cancel without creating a local signing request', async () => {
@@ -153,9 +157,9 @@ test('independent confirmation can cancel without creating a local signing reque
   assert.equal(result.status, 'cancelled');
 });
 
-for (const result of ['rejected', 'partial', 'confirmed'] as const) test(`local mocked signing session: ${result}`, async () => {
+for (const result of ['rejected', 'failed', 'unverified', 'confirmed'] as const) test(`local mocked signing session: ${result}`, async () => {
   const f = fixture(), p = await preparePublication(f.client, f.manifest, options);
-  f.state.transactions.set(hash1, p.plan.calls[0]); f.state.transactions.set(hash2, p.plan.calls[1]);
+  f.state.transactions.set(hash1, p.plan.calls[0]);
   let posted: Promise<void> | undefined;
   const outcome = await runPublication(f.client, p, { confirm: async () => true, timeoutMs: 2000,
     approvals: beforeSign => new Approvals(() => {}, undefined, beforeSign),
@@ -165,10 +169,12 @@ for (const result of ['rejected', 'partial', 'confirmed'] as const) test(`local 
       assert.equal((await fetch(`${api}/preflight`, { method: 'POST', headers: { origin } })).status, 200);
       if (result === 'rejected') return post({ status: 'rejected' });
       await post({ status: 'pending', hashes: [hash1] });
-      if (result === 'partial') return post({ status: 'failed', hashes: [hash1] });
-      p.plan.records.forEach(r => f.state.records.set(r.key, r.value));
-      await post({ status: 'submitted', hashes: [hash1, hash2] });
+      if (result === 'failed') { f.state.reverted = true; return post({ status: 'failed', hashes: [hash1] }); }
+      // Unverified: the transaction landed but the records don't read back, so verification throws.
+      if (result === 'confirmed') p.plan.records.forEach(r => f.state.records.set(r.key, r.value));
+      await post({ status: 'submitted', hashes: [hash1] });
     })(); posted.catch(() => {}); },
   });
   await posted; assert.equal(outcome.status, result);
+  assert.deepEqual('hashes' in outcome && outcome.hashes, result === 'rejected' ? [] : [hash1]);
 });

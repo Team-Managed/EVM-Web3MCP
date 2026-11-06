@@ -1,5 +1,5 @@
 import {
-  getAddress, isAddress, keccak256, namehash, parseAbi, toBytes, toFunctionSelector,
+  getAddress, isAddress, keccak256, parseAbi, toBytes, toFunctionSelector,
   type Address, type Hex, type PublicClient,
 } from 'viem';
 import { normalize } from 'viem/ens';
@@ -22,7 +22,6 @@ const abi = parseAbi([
   'function findOwner(string) view returns(address)', 'function supportsInterface(bytes4) view returns(bool)',
   'function hasRoles(uint256,uint256,address) view returns(bool)', 'function hasRootRoles(uint256,address) view returns(bool)',
   'function root() view returns(address)', 'function usdc() view returns(address)', 'function decimals() view returns(uint8)',
-  'function text(bytes32,string) view returns(string)',
 ]);
 const implementationSlot = '0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc' as const;
 const same = (a: string | null | undefined, b: string) => a?.toLowerCase() === b.toLowerCase();
@@ -75,9 +74,10 @@ async function authority(client: PublicationClient, name: string, options: Publi
   const resolved = await client.getEnsResolver({ name });
   if (!same(resolver, options.resolver) || !same(resolved, options.resolver)) throw new Error('ENS hierarchy/resolver does not match the expected target.');
   await code(client, options.resolver);
+  // ENSv2 resolvers take DNS-encoded names and answer reads through resolve(bytes,bytes) (ENSIP-10), not text(bytes32,string).
   for (const [id, expected] of [['0x01ffc9a7', true], ['0xffffffff', false],
-    [toFunctionSelector('setText(bytes,string,string)'), true], [toFunctionSelector('text(bytes32,string)'), true]] as const) {
-    if (await read(options.resolver, 'supportsInterface', [id]) !== expected) throw new Error('Unsupported resolver interface. DNS-name setText is required.');
+    [toFunctionSelector('setText(bytes,string,string)'), true], [toFunctionSelector('resolve(bytes,bytes)'), true]] as const) {
+    if (await read(options.resolver, 'supportsInterface', [id]) !== expected) throw new Error('Unsupported resolver interface. DNS-name setText and resolve(bytes,bytes) are required.');
   }
   for (const key of ['org.web3mcp.manifest', 'org.web3mcp.digest']) {
     const allowed = await read(options.resolver, 'hasRootRoles', [16n, options.account]) === true ||
@@ -119,10 +119,11 @@ export async function preparePublication(client: PublicationClient, json: unknow
   const watched = [...new Set([...Object.values(manifest.contracts), options.resolver, ...auth.registries])];
   const snapshots: Record<string, Hex> = {};
   for (const address of watched) snapshots[address] = await fingerprint(client, address as Address);
-  const calls = plan.calls.map((c, i) => ({ to: c.to as Address, data: c.data, value: 0n,
-    description: `Publish ${plan.records[i].key} for ${manifest.name}`, kind: 'call' as const,
-    contract: 'resolver', method: 'setText', args: [
-      { name: 'name', value: manifest.name }, { name: 'key', value: plan.records[i].key }, { name: 'value', value: plan.records[i].value },
+  const calls = plan.calls.map(c => ({ to: c.to as Address, data: c.data, value: 0n,
+    description: `Publish the Web3MCP manifest and digest for ${manifest.name}`, kind: 'call' as const,
+    contract: 'resolver', method: 'publishManifest', args: [
+      { name: 'name', value: manifest.name }, { name: 'manifest', value: `${plan.records[0].value.length} bytes` },
+      { name: 'digest', value: plan.digest },
     ] }));
   const simulation = await simulatePublication(client, options.account, calls);
   return { plan, options: { ...options }, protocol, ownerName: auth.ownerName, snapshots,
@@ -160,9 +161,7 @@ export async function verifyPublication(client: PublicationClient, p: Publicatio
     return { status: steps.some(s => s.status === 'success') ? 'partial' : steps.some(s => s.status === 'reverted') || outcome.status === 'failed' ? 'failed' : outcome.status === 'pending' ? 'pending' : 'unconfirmed', steps };
   }
   for (const record of p.plan.records) {
-    const direct = await client.readContract({ address: p.options.resolver, abi, functionName: 'text', args: [namehash(p.plan.name), record.key] });
-    const resolved = await client.getEnsText({ name: p.plan.name, key: record.key });
-    if (direct !== record.value || resolved !== record.value) throw new Error('Record read-back mismatch; publication is not verified.');
+    if (await client.getEnsText({ name: p.plan.name, key: record.key }) !== record.value) throw new Error('Record read-back mismatch; publication is not verified.');
   }
   const auth = await authority(client, p.plan.name, p.options);
   if (auth.ownerName !== p.ownerName) throw new Error('Ownership scope changed after publication.');

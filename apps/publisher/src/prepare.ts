@@ -16,9 +16,12 @@ export function publicationPlan(json: unknown, resolver: string) {
   const text = JSON.stringify(manifest);
   const digest = keccak256(toBytes(text));
   const records = [{ key: MANIFEST_KEY, value: text }, { key: DIGEST_KEY, value: digest }];
-  const abi = parseAbi(['function setText(bytes name,string key,string value)']);
+  const abi = parseAbi(['function setText(bytes name,string key,string value)', 'function multicall(bytes[] calls) returns (bytes[])']);
+  const dnsName = toHex(packetToBytes(manifest.name));
+  const writes = records.map(r => encodeFunctionData({ abi, functionName: 'setText', args: [dnsName, r.key, r.value] }));
+  // One transaction for both records, so the name never has a manifest without its matching digest.
   return {
     name: manifest.name, chainId: manifest.chainId, digest, records,
-    calls: records.map(r => ({ to: resolver, value: '0', data: encodeFunctionData({ abi, functionName: 'setText', args: [toHex(packetToBytes(manifest.name)), r.key, r.value] }) })),
+    calls: [{ to: resolver, value: '0', data: encodeFunctionData({ abi, functionName: 'multicall', args: [writes] }) }],
   };
 }

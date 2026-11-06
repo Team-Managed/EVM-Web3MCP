@@ -41,7 +41,6 @@ interface Approval {
   status: 'pending' | 'submitted' | 'rejected' | 'failed';
   hashes: Hex[];
   error?: string;
-  sequential?: boolean;
 }
 
 type StepState = 'idle' | 'wallet' | 'confirming' | 'done' | 'failed';
@@ -168,7 +167,7 @@ async function sign() {
     .then((c) => c.atomic?.status)
     .catch(() => undefined);
   let batch: string | undefined;
-  if (calls.length > 1 && atomic === 'supported' && !approval.sequential) {
+  if (calls.length > 1 && atomic === 'supported') {
     calls.forEach((_, i) => mark(i, 'wallet'));
     await preflight();
     try {

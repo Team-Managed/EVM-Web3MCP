@@ -1,25 +1,20 @@
 #!/usr/bin/env node
 import { readFile } from 'node:fs/promises';
-import { ManifestError, validateManifest } from '@web3mcp/evm';
+import { validateManifest } from '@web3mcp/evm';
 import { createPublicClient, http, getAddress, isAddress, type Address } from 'viem';
 import { createInterface } from 'node:readline/promises';
 import { sepolia } from 'viem/chains';
-import { giftBoxManifest } from './giftbox.js';
+import { messageOf } from './message.js';
 import { preparePublication } from './publication.js';
 import { runPublication } from './session.js';
 
 const [command, file, ...options] = process.argv.slice(2);
-if (!['validate', 'publish', 'giftbox'].includes(command) || !file) {
-  console.error('Usage: web3mcp-publish validate <manifest.json> | giftbox <deployed-address> <usdc-address> | publish <manifest.json> [--dry-run] --account <address> --root <registry> --resolver <resolver> --owner <expected owner> [--usdc <reviewed token>]');
+if (!['validate', 'publish'].includes(command) || !file) {
+  console.error('Usage: web3mcp-publish validate <manifest.json> | publish <manifest.json> [--dry-run] --account <address> --root <registry> --resolver <resolver> --owner <expected owner> [--usdc <reviewed token>]');
   process.exit(2);
 }
 
 try {
-  if (command === 'giftbox') {
-    if (options.length !== 1) throw new Error('giftbox requires deployed GiftBox and USDC addresses.');
-    console.log(JSON.stringify(giftBoxManifest(file, options[0]), null, 2));
-    process.exit(0);
-  }
   const manifest = validateManifest(JSON.parse(await readFile(file, 'utf8')));
   if (command === 'validate') {
     if (options.length) throw new Error('Unexpected validate arguments.');
@@ -43,7 +38,7 @@ try {
     if (!dryRun) {
       const result = await runPublication(client, publication, { confirm: async () => {
         const terminal = createInterface({ input: process.stdin, output: process.stdout });
-        try { return (await terminal.question(`Create a local signing request for these TWO resolver writes on Sepolia as ${publication.options.account}? Type publish to continue: `)).trim() === 'publish'; }
+        try { return (await terminal.question(`Create a local signing request for this one resolver transaction on Sepolia as ${publication.options.account}? Type publish to continue: `)).trim() === 'publish'; }
         finally { terminal.close(); }
       }, onCreated: ({ id, url }) => console.log(`Local wallet review: ${url}\nRequest ID: ${id}. Only you may connect and sign.`) });
       console.log(JSON.stringify(result, null, 2));
@@ -51,9 +46,6 @@ try {
     }
   }
 } catch (e) {
-  // RPC exceptions can embed credential-bearing URLs; only show our offline validation diagnostics.
-  console.error(e instanceof ManifestError ? e.message : command === 'publish'
-    ? 'Publication checks or verification failed. Check options, Sepolia RPC, contract configuration, resolver compatibility and signer permissions. If a wallet request was already opened, inspect its hashes and wallet history before any retry; this error does not prove nothing was sent.'
-    : String(e));
+  console.error(messageOf(e));
   process.exit(1);
 }

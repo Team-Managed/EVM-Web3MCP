@@ -26,7 +26,6 @@ export interface Approval {
   status: ApprovalStatus;
   hashes: `0x${string}`[];
   error?: string;
-  sequential?: boolean;
 }
 
 const HASH = /^0x[0-9a-fA-F]{64}$/;
@@ -57,14 +56,14 @@ export class Approvals {
     private beforeSign?: (id: string) => Promise<void>,
   ) {}
 
-  async create(prepared: PreparedWrite, protocol: Protocol, tool: string, options: { sequential?: boolean } = {}): Promise<{ id: string; url: string }> {
+  async create(prepared: PreparedWrite, protocol: Protocol, tool: string): Promise<{ id: string; url: string }> {
     return this.createRequest(prepared, {
       name: protocol.name, chainId: protocol.manifest.chainId,
       contracts: Object.entries(protocol.contracts).map(([alias, c]) => ({ alias, address: c.address, trust: c.trust })),
-    }, tool, options);
+    }, tool);
   }
 
-  async createRequest(prepared: PreparedWrite, review: ApprovalReview, tool: string, options: { sequential?: boolean } = {}): Promise<{ id: string; url: string }> {
+  async createRequest(prepared: PreparedWrite, review: ApprovalReview, tool: string): Promise<{ id: string; url: string }> {
     const id = randomBytes(16).toString('hex');
     this.approvals.set(id, {
       id,
@@ -87,7 +86,6 @@ export class Approvals {
       trust: review.contracts,
       status: 'pending',
       hashes: [],
-      ...(options.sequential ? { sequential: true } : {}),
     });
     const url = `${await this.start()}/approve/${id}`;
     this.open(url);
