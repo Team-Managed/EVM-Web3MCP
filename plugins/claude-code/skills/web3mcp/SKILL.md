@@ -1,6 +1,6 @@
 ---
 name: web3mcp
-description: Use EVM protocols that publish Web3MCP tools under an ENS name. Use when the user wants to read from or act on a protocol or contract, by ENS name ("deposit 10 USDC into vault.web3mcp-demo.eth") or by goal ("swap my ETH to USDC").
+description: Use EVM protocols that publish Web3MCP tools under an ENS name. Use when the user wants to read from or act on a protocol or contract, by ENS name ("swap 0.01 ETH for USDC on swap.web3mcp-demo.eth") or by goal ("swap my ETH to USDC").
 ---
 
 1. Find the protocol:
