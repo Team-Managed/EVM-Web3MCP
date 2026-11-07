@@ -1,10 +1,36 @@
+<p align="center">
+  <a href="https://evm.web3mcp.org">
+    <img src="https://evm.web3mcp.org/logo.svg" alt="Web3MCP Logo" width="100" height="100" />
+  </a>
+</p>
+
 # EVM-Web3MCP
 
-**Let AI agents use any smart contract, just by its ENS name.**
+<p align="center">
+  <strong>Let AI agents use any smart contract, just by its ENS name.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Team-Managed/EVM-Web3MCP/actions/workflows/ci.yml"><img src="https://github.com/Team-Managed/EVM-Web3MCP/actions/workflows/ci.yml/badge.svg" alt="CI Status" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License: Apache-2.0" /></a>
+  <a href=".nvmrc"><img src="https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg" alt="Node.js 22+" /></a>
+  <a href="https://sepolia.etherscan.io"><img src="https://img.shields.io/badge/network-Ethereum%20Sepolia-627EEA.svg" alt="Sepolia" /></a>
+  <a href="https://www.npmjs.com/package/@web3mcp/evm"><img src="https://img.shields.io/npm/v/@web3mcp/evm.svg" alt="npm" /></a>
+</p>
+
+<p align="center">
+  <a href="https://ens.domains" title="ENS"><img src="https://img.logo.dev/ens.domains?size=96&format=png&retina=true&token=pk_BZOhereATUe11DHE7ILvBg" alt="ENS" height="28" /></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://uniswap.org" title="Uniswap v4"><img src="https://img.logo.dev/uniswap.org?size=96&format=png&retina=true&token=pk_BZOhereATUe11DHE7ILvBg" alt="Uniswap" height="28" /></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://metamask.io" title="MetaMask"><img src="https://img.logo.dev/metamask.io?size=96&format=png&retina=true&token=pk_BZOhereATUe11DHE7ILvBg" alt="MetaMask" height="28" /></a>
+</p>
+
+---
 
 Today an AI agent can only use a smart contract if someone writes custom code for it. With Web3MCP, the contract publishes its own list of tools under its ENS name, like `uniswap.eth`. Install one plugin in Claude Code or Codex and ask *"swap 10 USDC for ETH on uniswap.eth"*. The agent finds the tools, checks the contract and prepares the transaction. You review it and sign in your own wallet; the agent never holds your keys.
 
-Built at ETHGlobal Mumbai 2026. Sibling of [Solana-Web3MCP](https://github.com/Team-Managed/Solana-Web3MCP).
+Built at ETHGlobal Mumbai 2026.
 
 ## An onchain web for AI agents
 
@@ -39,6 +65,7 @@ Details: [spec/SPEC.md](spec/SPEC.md).
 | `plugins/claude-code` | Claude Code and Codex plugin: MCP server, a skill to use protocols, a skill to build them, and a hook that confirms every write |
 | `plugins/codex` | Codex setup |
 | `apps/publisher` | `web3mcp-publish` CLI: validate a manifest, check it against the chain, print the ENS records to publish, list a published name on the Arkiv search index, and search it |
+| `apps/website` | Hosted website and documentation: [evm.web3mcp.org](https://evm.web3mcp.org) |
 | `apps/explorer` | Hosted read-only explorer (planned) |
 | `contracts` | Foundry: `AgentSwap`, the demo contract |
 | `spec` | Specification and shared test fixtures |
