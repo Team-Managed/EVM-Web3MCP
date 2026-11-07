@@ -2,7 +2,7 @@
   "name": "@web3mcp/publisher",
   "version": "0.0.1",
   "private": true,
-  "description": "CLI for protocol authors: validate a manifest, check it against the chain, and print the ENS records to publish",
+  "description": "CLI for protocol authors: validate a manifest, check it against the chain, and publish its ENS records",
   "type": "module",
   "license": "Apache-2.0",
   "engines": {

@@ -6,7 +6,7 @@ const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/, 'expected a 0x-prefixed 
 const binding = z.string().min(1).max(100);
 
 const input = z.strictObject({
-  type: z.enum(['address', 'amount', 'ether', 'uint256', 'bool', 'bytes32', 'string']),
+  type: z.enum(['address', 'amount', 'ether', 'uint256', 'bool', 'bytes32', 'string', 'date']),
   description: z.string().max(200).optional(),
   // An amount is a human decimal, scaled by this contract's decimals(). An ether input is one in ETH (18 decimals).
   token: identifier.optional(),

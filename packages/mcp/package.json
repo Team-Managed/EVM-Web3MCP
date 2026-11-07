@@ -23,6 +23,10 @@
     "README.md"
   ],
   "exports": {
+    "./approvals": {
+      "types": "./dist/approvals.d.ts",
+      "import": "./dist/approvals.js"
+    },
     ".": {
       "types": "./dist/server.d.ts",
       "import": "./dist/server.js"

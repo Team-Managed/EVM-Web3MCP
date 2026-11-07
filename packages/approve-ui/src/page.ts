@@ -54,6 +54,7 @@ let connected: Address | undefined;
 let message = '';
 let busy = false;
 let sent = false;
+let sentHashes: Hex[] = [];
 let steps: { state: StepState; hash?: Hex }[] = [];
 
 // Builds elements with text nodes only, so manifest text can never become HTML.
@@ -120,7 +121,15 @@ async function report(body: object) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (res.ok) approval = await res.json();
+  if (!res.ok) throw new Error('Could not update the local request. Check wallet history before retrying.');
+  approval = await res.json();
+}
+
+async function preflight() {
+  const res = await fetch(`/api/approvals/${id}/preflight`, { method: 'POST' });
+  if (!res.ok) throw new Error('Publication/request checks failed or expired. Do not retry without reviewing a new preparation.');
+  const accounts = await createWalletClient({ transport: custom(window.ethereum!) }).getAddresses();
+  if (!same(accounts[0], approval.account)) throw new Error('Wallet account changed; reconnect the expected account.');
 }
 
 async function connect() {
@@ -142,6 +151,7 @@ function mark(i: number, state: StepState, hash?: Hex) {
 }
 
 async function sign() {
+  if (approval.hashes.length > 0) throw new Error('This request already has submissions. Check their receipts; never resubmit the same request.');
   const chain = chainOf(approval);
   if (!chain || !window.ethereum || !connected) return;
   const wallet = createWalletClient({ account: connected, chain, transport: custom(window.ethereum) });
@@ -170,6 +180,7 @@ async function sign() {
   let batch: string | undefined;
   if (calls.length > 1 && atomic === 'supported') {
     calls.forEach((_, i) => mark(i, 'wallet'));
+    await preflight();
     try {
       batch = (await wallet.sendCalls({ calls: calls.map(({ gas, ...call }) => call) })).id;
     } catch (e) {
@@ -178,6 +189,7 @@ async function sign() {
     }
   }
   const hashes: Hex[] = [];
+  sentHashes = hashes;
   if (batch) {
     sent = true;
     calls.forEach((_, i) => mark(i, 'confirming'));
@@ -192,9 +204,11 @@ async function sign() {
     // This wallet can't batch: send one step at a time and wait for each, so later steps see earlier ones.
     for (const [i, call] of calls.entries()) {
       mark(i, 'wallet');
+      await preflight();
       const hash = await wallet.sendTransaction(call);
       sent = true;
       hashes.push(hash);
+      await report({ status: 'pending', hashes });
       mark(i, 'confirming', hash);
       const receipt = await reader.waitForTransactionReceipt({ hash });
       mark(i, receipt.status === 'success' ? 'done' : 'failed');
@@ -213,7 +227,7 @@ async function act(action: () => Promise<void>) {
     // Declining the connection prompt, or an error before anything was sent, can be retried.
     // Declining the transaction rejects the request; a failure after sending ends it.
     steps = steps.map((s) => (s.state === 'wallet' || s.state === 'confirming' ? { ...s, state: sent ? 'failed' : 'idle' } : s));
-    if (action === sign && sent) await report({ status: 'failed', error: messageOf(e) });
+    if (action === sign && sent) await report({ status: 'failed', hashes: sentHashes, error: messageOf(e) });
     else if (action === sign && isRejection(e)) await report({ status: 'rejected' });
     else message = isRejection(e) ? 'You declined the wallet request.' : messageOf(e);
   }

@@ -49,6 +49,8 @@ A `call` names a contract alias, a human-readable function signature (`function 
 
 Each tool declares named inputs: `address` (an address or ENS name), `amount` (a decimal string, scaled by the `decimals()` of the input's `token` contract), `ether` (a decimal string in ETH, 18 decimals, for example a payable call's `value`), `uint256`, `bool`, `bytes32` or `string`.
 
+`date` is an additive input type: a string `YYYY-MM-DD` means midnight UTC; a full `YYYY-MM-DDTHH:mm:ss[.fraction]Z` or explicit `±HH:mm` offset means that instant. Calendar-invalid dates, timezone-free date-times, unknown `-00:00` offsets, offsets outside ±14:00, and negative/overflowing uint64 Unix times are rejected. Years are four digits (0001–9999), leap seconds are not accepted, and fractional seconds are truncated. The ABI value is whole Unix seconds; signing review shows the normalized UTC instant. Existing input types are unchanged.
+
 ### Bindings
 
 An argument is either a literal, parsed against the function's ABI type, or one of:

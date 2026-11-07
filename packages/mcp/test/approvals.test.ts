@@ -5,9 +5,9 @@ import { send } from './http.ts';
 
 const HASH = `0x${'ab'.repeat(32)}`;
 
-async function created() {
+async function created(beforeSign?: () => Promise<void>) {
   let opened = '';
-  const approvals = new Approvals((url) => (opened = url));
+  const approvals = new Approvals((url) => (opened = url), undefined, beforeSign);
   const prepared = {
     protocol: 'vault.web3mcp-demo.eth',
     tool: 'deposit',
@@ -57,4 +57,27 @@ test('wait returns as soon as the page reports', async () => {
   assert.equal((await waiting)?.status, 'rejected');
   assert.ok(Date.now() - started < 2_000);
   approvals.close();
+});
+
+test('preflight is same-origin only and fails closed before wallet submission', async () => {
+  let checks = 0;
+  const { approvals, origin, api } = await created(async () => { checks++; throw new Error('Ownership changed'); });
+  try {
+    assert.equal((await send(`${api}/preflight`, { method: 'POST' })).status, 403);
+    assert.equal(checks, 0);
+    assert.equal((await send(`${api}/preflight`, { method: 'POST', origin })).status, 500);
+    assert.equal(checks, 1);
+    assert.equal(JSON.parse((await send(api)).body).status, 'pending');
+  } finally { approvals.close(); }
+});
+
+test('progress hashes survive failure and cannot be removed or called a rejection', async () => {
+  const { approvals, id, origin, api } = await created();
+  try {
+    assert.equal((await send(api, { method: 'POST', origin, body: { status: 'pending', hashes: [HASH] } })).status, 200);
+    assert.equal((await send(api, { method: 'POST', origin, body: { status: 'failed', hashes: [] } })).status, 400);
+    assert.equal((await send(api, { method: 'POST', origin, body: { status: 'rejected' } })).status, 400);
+    assert.equal((await send(api, { method: 'POST', origin, body: { status: 'failed', error: 'second step declined' } })).status, 200);
+    assert.deepEqual(approvals.get(id)?.hashes, [HASH]);
+  } finally { approvals.close(); }
 });

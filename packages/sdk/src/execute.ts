@@ -13,6 +13,7 @@ import {
   type Hex,
 } from 'viem';
 import { normalize } from 'viem/ens';
+import { parseDateInput, formatDateInput } from './date.js';
 import type { ChainClient } from './client.js';
 import { assertUnchanged, type Protocol } from './discover.js';
 import type { ToolDeclaration } from './manifest.js';
@@ -229,6 +230,7 @@ class Bindings {
     const text = String(this.input[key]).trim();
     if (declared.type === 'amount') return { value: `${text} ${declared.token!.toUpperCase()}` };
     if (declared.type === 'ether') return { value: `${text} ETH` };
+    if (declared.type === 'date') return { value: formatDateInput(value as bigint) };
     return { value: address && text.toLowerCase() !== address.toLowerCase() ? text : (address ?? text), address };
   }
 
@@ -250,6 +252,9 @@ class Bindings {
     if (raw === undefined || raw === null || raw === '') throw new ToolError(`Missing input "${name}".`);
     const text = String(raw).trim();
     switch (declared.type) {
+      case 'date':
+        try { return parseDateInput(text); }
+        catch { throw new ToolError(`"${name}" must be a valid ISO date or date-time with explicit timezone within uint64 Unix seconds.`); }
       case 'address':
         return resolveAddress(this.client, text);
       case 'amount':

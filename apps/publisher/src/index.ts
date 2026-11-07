@@ -1,21 +1,28 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
+import { createInterface } from 'node:readline/promises';
 import { createPublicClient as createArkivClient, createWalletClient as createArkivWallet, ExpirationTime } from '@arkiv-network/sdk';
 import { rabdi } from '@arkiv-network/sdk/chains';
 import { and, eq } from '@arkiv-network/sdk/query';
-import { createPublicClient, getAddress, http, type Hex } from 'viem';
+import { createPublicClient, getAddress, http, isAddress, type Address, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { mainnet, sepolia } from 'viem/chains';
 import { DIGEST_KEY, discover, listing, LISTING, readCode, search, validateManifest, verifyManifest, type Protocol } from '@web3mcp/evm';
 import { browserTransport } from './browser.js';
+import { messageOf } from './message.js';
+import { preparePublication } from './publication.js';
 import { manifestRecords, publishCalldata, SET_TEXT_SELECTORS } from './records.js';
 import { refreshBatch } from './refresh.js';
+import { runPublication } from './session.js';
 
 const USAGE = `Usage:
   web3mcp-publish validate <manifest.json>       check the format, offline
   web3mcp-publish check <manifest.json>          also check it against the chain, and print the ENS records to publish
   web3mcp-publish check <ens-name>               discover a published name, as an agent's host would
+  web3mcp-publish publish <manifest.json> --account <signer> --root <ens-root> --resolver <resolver> --owner <name-owner>
+                  [--usdc <token>] [--dry-run]   publish both ENS records from your browser wallet on an ENSv2 Sepolia
+                                                 name, after checking permissions and simulating
   web3mcp-publish index <ens-name> --account <foundry-keystore>
   web3mcp-publish index <ens-name> --browser <your-address>
                                                  list a published name on the Arkiv search index, or refresh its listing,
@@ -29,7 +36,7 @@ const LIFETIME_DAYS = 30;
 
 const env = process.env;
 const [command, target, flag, signer] = process.argv.slice(2);
-if (!target || !['validate', 'check', 'index', 'search'].includes(command) || (command === 'index' && (!['--account', '--browser'].includes(flag) || !signer))) {
+if (!target || !['validate', 'check', 'publish', 'index', 'search'].includes(command) || (command === 'index' && (!['--account', '--browser'].includes(flag) || !signer))) {
   console.error(USAGE);
   process.exit(2);
 }
@@ -37,6 +44,8 @@ if (!target || !['validate', 'check', 'index', 'search'].includes(command) || (c
 try {
   if (command === 'index') {
     await index(target, flag, signer);
+  } else if (command === 'publish') {
+    await publish(target, process.argv.slice(4));
   } else if (command === 'search') {
     const ens = client(env.WEB3MCP_CHAIN === 'mainnet' ? mainnet : sepolia);
     const found = await search(createArkivClient({ chain: arkivChain(), transport: http() }), ens, process.argv.slice(3), ens.chain.id);
@@ -90,7 +99,8 @@ try {
     }
   }
 } catch (e) {
-  console.error(`✗ ${e instanceof Error ? e.message : String(e)}`);
+  // viem's short message leaves out the RPC URL, which can carry an API key.
+  console.error(`✗ ${messageOf(e)}`);
   // The Arkiv SDK reports "insufficient funds" and other RPC errors as a bare "Execution error"; the root cause says what to fix.
   let root: unknown = e;
   while (root instanceof Error && root.cause) root = root.cause;
@@ -113,6 +123,33 @@ function printTrust(protocol: Protocol) {
     const note = c.trust === 'name-only' ? `: no primary name points back to ${protocol.name} or a subname` : '';
     console.log(`  ${alias} ${c.address} ${c.trust}${note}`);
   }
+}
+
+/** Publish a manifest's two ENS records in one transaction, signed in the owner's browser wallet on the local signing page. */
+async function publish(file: string, args: string[]): Promise<void> {
+  const values = new Map<string, Address>();
+  let dryRun = false;
+  for (let i = 0; i < args.length; ++i) {
+    const option = args[i];
+    if (option === '--dry-run' && !dryRun) { dryRun = true; continue; }
+    if (!['--account', '--root', '--resolver', '--owner', '--usdc'].includes(option) || values.has(option) || !isAddress(args[i + 1] ?? '')) throw new Error('Invalid or duplicate publishing option.');
+    values.set(option, getAddress(args[++i]));
+  }
+  for (const option of ['--account', '--root', '--resolver', '--owner']) if (!values.has(option)) throw new Error(`Missing ${option}.`);
+  if (!dryRun && !process.stdin.isTTY) throw new Error('Live publication needs an interactive terminal confirmation; use --dry-run for automation.');
+  const ens = client(sepolia);
+  const publication = await preparePublication(ens, JSON.parse(await readFile(file, 'utf8')), { account: values.get('--account')!,
+    root: values.get('--root')!, resolver: values.get('--resolver')!, owner: values.get('--owner')!, usdc: values.get('--usdc') });
+  console.log(JSON.stringify({ ...publication.plan, signer: publication.options.account,
+    owner: publication.options.owner, ownerScope: publication.ownerName, preparedOnly: true, permissionsVerified: true, simulated: true }, null, 2));
+  if (dryRun) return;
+  const result = await runPublication(ens, publication, { confirm: async () => {
+    const terminal = createInterface({ input: process.stdin, output: process.stdout });
+    try { return (await terminal.question(`Create a local signing request for this one resolver transaction on Sepolia as ${publication.options.account}? Type publish to continue: `)).trim() === 'publish'; }
+    finally { terminal.close(); }
+  }, onCreated: ({ id, url }) => console.log(`Local wallet review: ${url}\nRequest ID: ${id}. Only you may connect and sign.`) });
+  console.log(JSON.stringify(result, null, 2));
+  if (result.status !== 'confirmed' && result.status !== 'cancelled' && result.status !== 'rejected') process.exitCode = 1;
 }
 
 /** List a published name on the Arkiv index, or keep its listing alive. Safe to run again at any time. */

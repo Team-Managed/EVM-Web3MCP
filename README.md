@@ -104,6 +104,10 @@ cd contracts && forge test --fork-url https://ethereum-sepolia-rpc.publicnode.co
 
 It's live on Sepolia at [`0xE17021E2fd5Dd0A6608293E7Ac5E3c361ae30e58`](https://sepolia.etherscan.io/address/0xE17021E2fd5Dd0A6608293E7Ac5E3c361ae30e58), owned by `web3mcp.eth`. `agentswap.web3mcp.eth` points at it and holds its manifest, and its primary name points back, so discovery marks it owner-verified. It was deployed through the deterministic CREATE2 deployer and published from the owner's wallet on the local signing page. The constructor takes the owner, Uniswap's PoolManager and Quoter, Chainlink's ETH/USD feed, and Circle's USDC.
 
+## GiftBox (Sepolia)
+
+GiftBox is an independent ENSv2-based ETH/USDC gifting demo: an unlocked gift belongs to the name's current owner at claim time. It is deployed on Sepolia at `0xdcF1c9809aA58C7C390753E43dE25Dd064F7eda8` and published at `gifts.web3mcp.eth` (owner-verified). See [GiftBox lifecycle, deployment evidence, tools and publication requirements](docs/GIFTBOX.md) and the [deployment manifest](manifests/sepolia/gifts.web3mcp.eth.json). The publisher checks ENSv2 permissions, simulates the one DNS-name record transaction, and supports dry-run review or an explicitly confirmed browser-wallet handoff; it published `gifts.web3mcp.eth`.
+
 ## Search on Arkiv
 
 A publisher lists its name on an index on [Arkiv](https://arkiv.network), so agents can find it by what it does. Each search term is an indexed attribute, so Arkiv itself finds the listings that match, and each listing expires unless the publisher refreshes it. Hosts keep only listings that still match the name's ENS record. Details: [spec section 6](spec/SPEC.md#6-search-arkiv) and [`arkiv/`](arkiv).

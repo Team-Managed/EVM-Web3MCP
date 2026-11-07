@@ -15,7 +15,7 @@ const pluginPage = new URL('../../../server/approve/', import.meta.url);
 export function browserTransport(
   chain: Chain,
   page: { protocol: string; title: string; description: string },
-  approvals = new Approvals(undefined, existsSync(pluginPage) ? pluginPage : undefined),
+  approvals = localApprovals(),
   forward: Forward = http()({ chain }).request as Forward,
 ) {
   // For the wallet to add the network. The public RPC: an access key in the URL's path stays on this machine.
@@ -50,6 +50,11 @@ export function browserTransport(
     // A retry would open the signing page again.
     { retryCount: 0 },
   );
+}
+
+/** The local signing page, served from the plugin's copy when this CLI runs from the plugin's bundle. */
+export function localApprovals(beforeSign?: (id: string) => Promise<void>) {
+  return new Approvals(undefined, existsSync(pluginPage) ? pluginPage : undefined, beforeSign);
 }
 
 const decimal = (hex?: Hex) => (hex ? BigInt(hex).toString() : undefined);
