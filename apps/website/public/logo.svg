@@ -1,13 +1,13 @@
-<svg width="100" height="85" viewBox="0 0 100 85" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-  <!-- Top Ethereum Diamond Apex (Indigo / Violet) -->
-  <polygon points="50,10 68,28 50,42 32,28" stroke="#6366F1" />
-
-  <!-- Left Wing Facet (Web3MCP Amber) -->
-  <polygon points="28,32 14,54 42,68 50,48" stroke="#E57E25" />
-
-  <!-- Right Wing Facet (Electric Teal / Cyan) -->
-  <polygon points="72,32 86,54 58,68 50,48" stroke="#06B6D4" />
-
-  <!-- Center Diamond Node (Bone White) -->
-  <polygon points="50,48 58,60 50,72 42,60" stroke="#FAF9F6" />
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Web3MCP: an Ethereum diamond as the head of a plug. App-icon version, used as the favicon. -->
+  <rect width="512" height="512" rx="112" fill="#111316" />
+  <g stroke-width="8" stroke-linejoin="round">
+    <polygon points="256,88 164,240 256,204" fill="#F4A25A" stroke="#F4A25A" />
+    <polygon points="256,88 256,204 348,240" fill="#E57E25" stroke="#E57E25" />
+    <polygon points="164,240 256,204 256,240" fill="#C96716" stroke="#C96716" />
+    <polygon points="256,204 348,240 256,240" fill="#9E4F0E" stroke="#9E4F0E" />
+    <polygon points="164,262 348,262 294,334 218,334" fill="#FAF9F6" stroke="#FAF9F6" />
+  </g>
+  <rect x="218" y="320" width="24" height="100" rx="12" fill="#FAF9F6" />
+  <rect x="270" y="320" width="24" height="100" rx="12" fill="#FAF9F6" />
 </svg>

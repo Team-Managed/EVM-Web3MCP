@@ -23,18 +23,18 @@ const CLEAN_INVARIANTS: InvariantItem[] = [
   {
     id: "custody",
     name: "Zero Key Custody",
-    rule: "Air-Gapped Wallet Boundary",
+    rule: "Local Wallet Boundary",
     description:
       "Private keys never touch agent memory. All state-changing transactions bridge to your local browser for wallet approval.",
-    badge: "Air-Gapped",
+    badge: "Your Wallet",
     badgeColor: "bg-[#FDF2E7] text-[#C96716] border-[#FCEBD9]",
   },
   {
     id: "simulation",
-    name: "State Diff Proofs",
-    rule: "Atomic Pre-Flight Simulation",
+    name: "Simulated Before Signing",
+    rule: "Pre-Flight Simulation",
     description:
-      "Every write call is simulated via eth_simulateV1 before prompting, proving exact token inflows, outflows, and gas.",
+      "Every write is simulated via eth_simulateV1 before you are asked to sign, showing the exact token inflows, outflows, and gas.",
     badge: "eth_simulateV1",
     badgeColor: "bg-[#EFF6FF] text-[#1D4ED8] border-[#BFDBFE]",
   },
@@ -43,7 +43,7 @@ const CLEAN_INVARIANTS: InvariantItem[] = [
     name: "ENS Source of Truth",
     rule: "Decentralized Registry",
     description:
-      "Manifests reside on-chain under the protocol's ENS text records, verified cryptographically by keccak256 digests.",
+      "Manifests live on-chain in the protocol's ENS text records, checked against a keccak256 digest stored beside them.",
     badge: "Owner-Verified",
     badgeColor: "bg-[#ECFDF5] text-[#059669] border-[#A7F3D0]",
   },
@@ -52,7 +52,7 @@ const CLEAN_INVARIANTS: InvariantItem[] = [
     name: "Fail-Closed Boundary",
     rule: "Zero-Trust Schema Validation",
     description:
-      "Malformed signatures, unverified targets, or ABI mismatches immediately halt execution before user interaction.",
+      "Malformed manifests, function signatures that don't match the contract, or contract code that changed since discovery halt execution before you are asked to sign.",
     badge: "Fail-Closed",
     badgeColor: "bg-[#FEF2F2] text-[#DC2626] border-[#FECACA]",
   },

@@ -1,17 +1,8 @@
-"use client";
-
-import React, { useState } from "react";
+import React from "react";
 import { FAQ_ITEMS } from "@/lib/data";
 import { Plus, Minus } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 export function FAQ() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
-
-  const toggle = (idx: number) => {
-    setOpenIndex(openIndex === idx ? null : idx);
-  };
-
   return (
     <section id="faq" className="py-24 bg-[#FAF9F6] border-b border-[#E2DFD7]">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -28,47 +19,31 @@ export function FAQ() {
           </p>
         </div>
 
-        {/* Sharp Accordion in Refined 2-Color Palette */}
+        {/* Native details/summary: open state, keyboard and screen readers come from the browser. One open at a time via the shared name. */}
         <div className="space-y-4">
-          {FAQ_ITEMS.map((item, idx) => {
-            const isOpen = openIndex === idx;
+          {FAQ_ITEMS.map((item, idx) => (
+            <details
+              key={item.question}
+              name="faq"
+              open={idx === 0}
+              className="group bg-[#FFFFFF] border border-[#E2DFD7] shadow-sharp-sand"
+            >
+              <summary className="list-none [&::-webkit-details-marker]:hidden cursor-pointer p-6 flex items-center justify-between gap-4 font-sans text-sm sm:text-base text-[#111316] font-semibold tracking-tight">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-[#E57E25] font-sans font-bold">0{idx + 1}</span>
+                  <span>{item.question}</span>
+                </div>
+                <div className="p-1 border border-[#E2DFD7] text-[#111316]">
+                  <Plus className="w-3.5 h-3.5 group-open:hidden" />
+                  <Minus className="w-3.5 h-3.5 hidden group-open:block" />
+                </div>
+              </summary>
 
-            return (
-              <div
-                key={item.question}
-                className="bg-[#FFFFFF] border border-[#E2DFD7] shadow-sharp-sand"
-              >
-                <button
-                  onClick={() => toggle(idx)}
-                  className="w-full text-left p-6 flex items-center justify-between gap-4 font-sans text-sm sm:text-base text-[#111316] font-semibold tracking-tight"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-[#E57E25] font-sans font-bold">0{idx + 1}</span>
-                    <span>{item.question}</span>
-                  </div>
-                  <div className="p-1 border border-[#E2DFD7] text-[#111316]">
-                    {isOpen ? <Minus className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                  </div>
-                </button>
-
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden border-t border-[#E2DFD7] bg-[#FAF9F6]/50"
-                    >
-                      <div className="p-6 text-xs sm:text-sm text-[#5A5D64] leading-relaxed font-sans">
-                        {item.answer}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+              <div className="border-t border-[#E2DFD7] bg-[#FAF9F6]/50 p-6 text-xs sm:text-sm text-[#5A5D64] leading-relaxed font-sans">
+                {item.answer}
               </div>
-            );
-          })}
+            </details>
+          ))}
         </div>
       </div>
     </section>

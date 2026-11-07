@@ -1,114 +1,10 @@
-import type { NavItem, ProtocolStep, TrustInvariant, GuaranteeCard, FaqItem } from "./types";
+import type { NavItem, GuaranteeCard, FaqItem } from "./types";
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "How It Works", href: "/#how-it-works" },
   { label: "Integrate", href: "/#choose-path" },
   { label: "Security", href: "/#guarantees" },
   { label: "FAQ", href: "/#faq" },
-];
-
-export const PROTOCOL_STEPS: ProtocolStep[] = [
-  {
-    step: 1,
-    id: "publish",
-    title: "Publish to ENS",
-    actor: "Protocol Team",
-    colorName: "azure",
-    badgeBg: "bg-azure",
-    badgeText: "text-white",
-    summary: "Store tool manifest in ENS text records.",
-    details:
-      "The protocol stores its manifest under its ENS name. An ENSv2 deployer role updates tools without domain ownership risk.",
-    codeSnippet: 'org.web3mcp.manifest = { "web3mcp": "0.1-evm", "tools": [...] }',
-  },
-  {
-    step: 2,
-    id: "find",
-    title: "Find by Capability",
-    actor: "Arkiv Index",
-    colorName: "ochre",
-    badgeBg: "bg-ochre",
-    badgeText: "text-ink",
-    summary: "Agents discover protocols matching intents.",
-    details:
-      "Agents query Arkiv to find protocols offering swaps, vaults, or data feeds. The ENS digest prevents cache tampering.",
-  },
-  {
-    step: 3,
-    id: "discover",
-    title: "Discover & Validate",
-    actor: "Generic Host",
-    colorName: "meadow",
-    badgeBg: "bg-meadow",
-    badgeText: "text-white",
-    summary: "Host validates digest and verifies primary name.",
-    details:
-      "The SDK pulls records from ENS and checks schema compliance. Contracts matching primary reverse records are marked Owner-Verified.",
-  },
-  {
-    step: 4,
-    id: "read",
-    title: "Read Contract State",
-    actor: "Direct RPC (viem)",
-    colorName: "azure-dark",
-    badgeBg: "bg-ink",
-    badgeText: "text-white",
-    summary: "Gasless contract queries feed live state to agents.",
-    details:
-      "View functions execute via eth_call. Agents query balances, rates, and reserves with zero gas and deterministic results.",
-    codeSnippet: "await host.call('vault_balanceOf', { account: userAddress })",
-  },
-  {
-    step: 5,
-    id: "simulate",
-    title: "Pre-Flight Simulation",
-    actor: "eth_simulateV1",
-    colorName: "solar",
-    badgeBg: "bg-solar",
-    badgeText: "text-white",
-    summary: "Simulate writes to compute exact balance deltas.",
-    details:
-      "State-changing calls are simulated upfront. Inflows, outflows, approvals, and gas limits are proven before prompt.",
-  },
-  {
-    step: 6,
-    id: "sign",
-    title: "User Signs in Wallet",
-    actor: "Approval UI",
-    colorName: "ink",
-    badgeBg: "bg-ink",
-    badgeText: "text-white",
-    summary: "User connects wallet to approve transaction.",
-    details:
-      "The host opens a local signing page. The user reviews decoded calls and balance deltas, then signs. The LLM never sees private keys.",
-  },
-];
-
-export const TRUST_INVARIANTS: TrustInvariant[] = [
-  {
-    iconName: "ShieldAlert",
-    title: "Zero Key Custody",
-    description: "The AI agent never holds, touches, or signs with a private key. Every transaction is approved by the human in their wallet.",
-    colorBorder: "border-ink",
-  },
-  {
-    iconName: "Lock",
-    title: "Fail-Closed Security",
-    description: "Manifests, function signatures, and parameter bindings are untrusted by default. Invalid ABIs immediately abort discovery.",
-    colorBorder: "border-meadow",
-  },
-  {
-    iconName: "Globe",
-    title: "ENS Source of Truth",
-    description: "Protocols own their tool registry under their Ethereum domain. Indices are pure caches; the ENS digest is final.",
-    colorBorder: "border-azure",
-  },
-  {
-    iconName: "Cpu",
-    title: "Pre-Flight Simulation",
-    description: "No blind signing. Writes execute against simulated state so users see exact token balance deltas before on-chain execution.",
-    colorBorder: "border-solar",
-  },
 ];
 
 export const GUARANTEES: GuaranteeCard[] = [
@@ -120,31 +16,31 @@ export const GUARANTEES: GuaranteeCard[] = [
     specReference: "SPEC §1 (Publication)",
   },
   {
-    tag: "Cryptographic",
+    tag: "Verified",
     colorAccent: "bg-meadow",
     title: "Owner-Verified Trust",
-    description: "Contracts with reverse ENS primary names pointing back to the publisher are cryptographically verified.",
+    description: "A contract whose ENS primary name points back to the publishing name is marked owner-verified; any other is labelled name-only.",
     specReference: "SPEC §3 (Discovery)",
   },
   {
     tag: "Deterministic",
     colorAccent: "bg-solar",
-    title: "State Diff Proofs",
-    description: "Multi-step calls simulate atomically via eth_simulateV1 with exact balance delta proofs.",
+    title: "Simulated Before Signing",
+    description: "Multi-step writes are simulated together via eth_simulateV1, showing the exact balance changes before you sign.",
     specReference: "SPEC §4 (Writes)",
   },
   {
-    tag: "Air-Gapped",
+    tag: "Your Wallet",
     colorAccent: "bg-ink",
     title: "Local Wallet Boundary",
-    description: "Writes bridge to a local approval page. Works with MetaMask, WalletConnect, and EIP-5792 batching.",
+    description: "Writes bridge to a local approval page. Works with browser wallets such as MetaMask and Rabby, with EIP-5792 batching.",
     specReference: "approve-ui",
   },
   {
     tag: "Agnostic",
     colorAccent: "bg-ochre",
     title: "Universal Host",
-    description: "One generic MCP host exposes discovered tools to Claude Code, Cursor, Codex, and custom agents.",
+    description: "One generic MCP host exposes discovered tools in Claude Code and Codex, or any MCP host that runs a stdio server.",
     specReference: "SPEC §5 (Exposure)",
   },
   {

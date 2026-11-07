@@ -352,10 +352,13 @@ import { discover, executeRead, prepareWrite } from "@web3mcp/evm";
 
 const client = createPublicClient({ chain: sepolia, transport: http() });
 const protocol = await discover(client, "agentswap.web3mcp.eth");
-const quote = await executeRead(client, protocol, "quote_eth_to_usdc", { amount: "0.01" });
+const quote = await executeRead(client, protocol, "quote_eth_to_usdc", { amount: "0.01" }); // such as "250.663701 USDC"
+const minUsdc = (parseFloat(String(quote)) * 0.99).toFixed(6); // accept about 1% less
+
+const wallet = "0xYourWallet";
 const write = await prepareWrite(client, protocol, "eth_to_usdc", {
-  amount: "0.01", min_usdc: String(quote), recipient: "0xYourWallet"
-}, "0xYourWallet");`}</CodeBlock></div>
+  amount: "0.01", min_usdc: minUsdc, recipient: wallet
+}, wallet);`}</CodeBlock></div>
                 <p className="mt-4 text-xs leading-5 text-[#6D28D9]">The SDK never signs. Pass the returned calls to the user&apos;s wallet.</p>
               </article>
               <article className="border border-[#A7F3D0] border-t-4 border-t-[#059669] bg-[#ECFDF5] p-6">
@@ -382,7 +385,7 @@ node <skill-folder>/scripts/web3mcp-publish.mjs check vault.myprotocol.eth`}</Co
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <article className="border border-[#DDD6FE] border-t-4 border-t-[#8B5CF6] bg-[#FAF5FF] p-6">
                 <h3 className="font-editorial text-2xl font-normal">Publishers index themselves</h3>
-                <p className="mt-2 text-sm leading-6 text-[#5A5D64]">After the ENS manifest is live, the publisher writes one <code>web3mcp.listing</code> entity owned by its wallet. The listing contains the ENS name, chain ID, manifest digest, a short description, and indexed capability terms.</p>
+                <p className="mt-2 text-sm leading-6 text-[#5A5D64]">After the ENS manifest is live, the publisher writes one <code>web3mcp.listing</code> entity owned by its wallet. The listing holds only the ENS name, chain ID, manifest digest, and indexed capability terms. It carries no text of its own: hosts show the description and matched terms from the ENS manifest.</p>
                 <div className="mt-5"><CodeBlock>{`# List or refresh a published name for 30 days
 npx web3mcp-publish index agentswap.web3mcp.eth --account web3mcp`}</CodeBlock></div>
                 <p className="mt-4 text-xs leading-5 text-[#6D28D9]">The command decrypts a Foundry keystore locally. Never put a private key in an environment variable.</p>
@@ -399,7 +402,7 @@ npx web3mcp-publish search swap usdc`}</CodeBlock></div>
             <MermaidDiagram chart={searchDiagram} />
             <h3 className="mt-10 text-lg font-semibold">What is stored in Arkiv?</h3>
             <div className="mt-5 overflow-x-auto border border-[#E2DFD7] bg-white">
-              <table className="w-full min-w-[640px] text-left text-sm"><thead className="border-b border-[#E2DFD7] bg-[#F4F1EA] text-xs uppercase tracking-wider"><tr><th className="p-4">Field</th><th className="p-4">Purpose</th></tr></thead><tbody className="divide-y divide-[#E2DFD7] text-[#5A5D64]"><tr><td className="p-4 font-mono text-xs text-[#111316]">ens</td><td className="p-4">The published ENS name.</td></tr><tr><td className="p-4 font-mono text-xs text-[#111316]">chainId</td><td className="p-4">Prevents a Sepolia user from receiving a mainnet listing, or vice versa.</td></tr><tr><td className="p-4 font-mono text-xs text-[#111316]">digest</td><td className="p-4">The ENS <code>org.web3mcp.digest</code> value captured when the listing was written.</td></tr><tr><td className="p-4 font-mono text-xs text-[#111316]">about</td><td className="p-4">The manifest description, limited to 200 characters and treated as publisher text.</td></tr><tr><td className="p-4 font-mono text-xs text-[#111316]">t.&lt;term&gt;</td><td className="p-4">Indexed capability flags, up to 27 terms per listing.</td></tr></tbody></table>
+              <table className="w-full min-w-[640px] text-left text-sm"><thead className="border-b border-[#E2DFD7] bg-[#F4F1EA] text-xs uppercase tracking-wider"><tr><th className="p-4">Field</th><th className="p-4">Purpose</th></tr></thead><tbody className="divide-y divide-[#E2DFD7] text-[#5A5D64]"><tr><td className="p-4 font-mono text-xs text-[#111316]">ens</td><td className="p-4">The published ENS name.</td></tr><tr><td className="p-4 font-mono text-xs text-[#111316]">chainId</td><td className="p-4">Prevents a Sepolia user from receiving a mainnet listing, or vice versa.</td></tr><tr><td className="p-4 font-mono text-xs text-[#111316]">digest</td><td className="p-4">The ENS <code>org.web3mcp.digest</code> value captured when the listing was written.</td></tr><tr><td className="p-4 font-mono text-xs text-[#111316]">t.&lt;term&gt;</td><td className="p-4">Indexed capability flags, up to 28 terms per listing.</td></tr></tbody></table>
             </div>
             <p className="mt-5 text-sm leading-6 text-[#5A5D64]">The current implementation uses Arkiv&apos;s Rabdi testnet (chain <code>7794095</code>). <code>WEB3MCP_ARKIV_KEY</code> is optional; without it, the public rate-limited endpoint is used.</p>
           </section>

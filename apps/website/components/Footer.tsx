@@ -36,7 +36,7 @@ export function Footer() {
           <div className="md:justify-self-end">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#93C5FD]">Build with us</p>
             <p className="mt-4 max-w-xs text-sm leading-6 text-[#A0A4AE]">Publish your protocol under ENS and make it discoverable to compatible agents.</p>
-            <Link href="/docs#plugins" className="mt-5 inline-flex items-center gap-2 border border-white/25 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-white hover:text-[#111316]">Read the guide <ArrowUpRight className="h-3.5 w-3.5" /></Link>
+            <Link href="/docs#publication" className="mt-5 inline-flex items-center gap-2 border border-white/25 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-white hover:text-[#111316]">Read the guide <ArrowUpRight className="h-3.5 w-3.5" /></Link>
           </div>
         </div>
 

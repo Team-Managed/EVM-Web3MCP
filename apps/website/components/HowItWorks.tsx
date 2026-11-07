@@ -57,7 +57,7 @@ export function HowItWorks() {
                 Publish via ENS.
               </h3>
               <p className="font-sans text-xs sm:text-sm text-[#5A5D64] leading-relaxed">
-                Write your tool manifest and ABI into ENS text records under your domain. An ENSv2 deployer updates tools with zero cloud infrastructure and zero custody risk.
+                Write your tool manifest into text records on your own ENS name. With ENSv2, a release key can update the tools and nothing else on the name. No servers to run.
               </p>
             </div>
 
@@ -81,7 +81,7 @@ export function HowItWorks() {
                     org.web3mcp.manifest
                   </span>
                   <span className="text-[#111316] font-medium block truncate">
-                    {'{ "tools": ["swapExactTokens"], "v": "0.1" }'}
+                    {'{"web3mcp":"0.1-evm","chainId":11155111,"tools":[…]}'}
                   </span>
                 </div>
 
@@ -90,7 +90,7 @@ export function HowItWorks() {
                     <span className="text-[#7A7E87] block text-[10px] uppercase font-sans font-semibold mb-0.5">
                       Digest (keccak256)
                     </span>
-                    <span className="text-[#111316] font-medium">0x7a1c...94dE</span>
+                    <span className="text-[#111316] font-medium">0x49bd...698f</span>
                   </div>
                   <span className="text-[10px] font-sans font-bold text-[#059669]">✓ Validated</span>
                 </div>
@@ -113,7 +113,7 @@ export function HowItWorks() {
                 Discover & simulate.
               </h3>
               <p className="font-sans text-xs sm:text-sm text-[#5A5D64] leading-relaxed">
-                AI hosts resolve protocols from ENS, query live on-chain state via gasless eth_call, and pre-flight state changes with eth_simulateV1 to prove exact balance deltas.
+                AI hosts resolve protocols from ENS, query live on-chain state via gasless eth_call, and simulate every write with eth_simulateV1 to show the exact balance changes.
               </p>
             </div>
 
@@ -171,7 +171,7 @@ export function HowItWorks() {
                 Approve in your wallet.
               </h3>
               <p className="font-sans text-xs sm:text-sm text-[#5A5D64] leading-relaxed">
-                Transactions bridge to a local signing page. The user inspects decoded function calls and simulated token deltas, then signs directly in MetaMask or WalletConnect. Zero key custody.
+                Transactions bridge to a local signing page. The user inspects decoded function calls and simulated token deltas, then signs in their own browser wallet, such as MetaMask or Rabby. Zero key custody.
               </p>
             </div>
 
@@ -188,7 +188,7 @@ export function HowItWorks() {
                   <span>Sends 0.05 ETH</span>
                 </div>
                 <div className="flex items-center justify-between text-[11px] pt-1 border-t border-[#E2DFD7]">
-                  <span className="font-semibold text-[#111316]">AgentSwap</span>
+                  <span className="font-semibold text-[#111316]">You receive</span>
                   <span className="font-mono text-[10px] text-[#059669] font-bold">+110.42 USDC</span>
                 </div>
               </div>

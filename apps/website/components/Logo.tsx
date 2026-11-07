@@ -1,20 +1,16 @@
 import React from "react";
 
 export interface LogoProps extends React.SVGProps<SVGSVGElement> {
+  /** Height in pixels; the mark is taller than it is wide. */
   size?: number;
   className?: string;
   showText?: boolean;
 }
 
 /**
- * Web3MCP Official Logo Mark
- * - Architectural wireframe crest cut at the waist
- * - Hollow transparent centers with colored wireframe strokes
- * - 4 distinct facet colors:
- *    - Top Diamond Apex: Ethereum Indigo/Violet (#6366F1)
- *    - Left Wing Facet: Web3MCP Amber (#E57E25)
- *    - Right Wing Facet: Electric Teal/Cyan (#06B6D4)
- *    - Center Diamond Node: Adaptive currentColor (White on dark, Obsidian on light)
+ * Web3MCP logo mark: an Ethereum diamond as the head of a plug.
+ * Any EVM contract, plugged into an AI agent. The diamond keeps its amber facets;
+ * the plug uses currentColor, so it is light on dark backgrounds and ink on light ones.
  */
 export function Logo({
   size = 26,
@@ -25,29 +21,24 @@ export function Logo({
   return (
     <div className={`inline-flex items-center gap-2.5 ${className}`}>
       <svg
-        width={size}
-        height={Math.round(size * 0.85)}
-        viewBox="0 0 100 85"
-        fill="none"
-        strokeWidth="6"
-        strokeLinecap="round"
+        width={Math.round((size * 100) / 172)}
+        height={size}
+        viewBox="0 0 100 172"
+        strokeWidth="4"
         strokeLinejoin="round"
         xmlns="http://www.w3.org/2000/svg"
         className="shrink-0 transition-transform duration-200"
-        aria-label="Web3MCP Logo"
+        role="img"
+        aria-label="Web3MCP"
         {...props}
       >
-        {/* Top Ethereum Diamond Apex (Indigo / Violet) */}
-        <polygon points="50,10 68,28 50,42 32,28" stroke="#6366F1" />
-
-        {/* Left Wing Facet (Web3MCP Amber) */}
-        <polygon points="28,32 14,54 42,68 50,48" stroke="#E57E25" />
-
-        {/* Right Wing Facet (Electric Teal / Cyan) */}
-        <polygon points="72,32 86,54 58,68 50,48" stroke="#06B6D4" />
-
-        {/* Center Diamond Node (Adaptive currentColor) */}
-        <polygon points="50,48 58,60 50,72 42,60" stroke="currentColor" />
+        <polygon points="50,4 4,80 50,62" fill="#F4A25A" stroke="#F4A25A" />
+        <polygon points="50,4 50,62 96,80" fill="#E57E25" stroke="#E57E25" />
+        <polygon points="4,80 50,62 50,80" fill="#C96716" stroke="#C96716" />
+        <polygon points="50,62 96,80 50,80" fill="#9E4F0E" stroke="#9E4F0E" />
+        <polygon points="4,91 96,91 69,127 31,127" fill="currentColor" stroke="currentColor" />
+        <rect x="31" y="118" width="12" height="50" rx="6" fill="currentColor" />
+        <rect x="57" y="118" width="12" height="50" rx="6" fill="currentColor" />
       </svg>
 
       {showText && (

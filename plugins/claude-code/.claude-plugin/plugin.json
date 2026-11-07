@@ -1,8 +1,22 @@
 {
   "name": "web3mcp",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "author": {
     "name": "Team-Managed"
   },
-  "description": "Use any EVM contract that publishes Web3MCP tools under its ENS name. Writes are simulated and signed in your own wallet."
+  "description": "Use any EVM contract that publishes Web3MCP tools under its ENS name. Writes are simulated and signed in your own wallet.",
+  "userConfig": {
+    "account": {
+      "type": "string",
+      "title": "Your wallet",
+      "description": "Your wallet address or ENS name. Used to simulate writes before you sign. Never enter a private key.",
+      "default": ""
+    },
+    "rpc_url": {
+      "type": "string",
+      "title": "Sepolia RPC URL",
+      "description": "Optional. Leave empty to use a public Sepolia endpoint.",
+      "default": ""
+    }
+  }
 }

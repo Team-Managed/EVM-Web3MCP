@@ -1,36 +1,142 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer, type RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { validateManifest, type Manifest, type ToolDeclaration } from '@web3mcp/evm';
+import {
+  discover as discoverFromEns,
+  executeRead,
+  prepareWrite,
+  resolveAddress,
+  search,
+  validateManifest,
+  verifyManifest,
+  type ArkivReader,
+  type ChainClient,
+  type Manifest,
+  type PreparedWrite,
+  type Protocol,
+  type ToolDeclaration,
+} from '@web3mcp/evm';
 import { z } from 'zod';
+import { Approvals } from './approvals.js';
 
 // Also blocks path traversal: no slashes, and no empty labels, so no "..".
 const ENS_NAME = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 
 export interface ServerOptions {
-  // shortcut: discover reads <manifestDir>/<ens-name>.json instead of ENS records; replace with ENS resolution in build step 4.
+  /** Chain connection for ENS lookups and contract calls. Without one, discovered tools are listed but can't run. */
+  client?: ChainClient;
+  /** The user's wallet address or ENS name, used to simulate writes. Never a key. */
+  account?: string;
+  // shortcut: <manifestDir>/<ens-name>.json is checked before ENS so we can develop before names are published; drop once the demo names are live.
   manifestDir?: string;
+  /** Where prepared writes wait for the user's signature. Tests pass one that doesn't open a browser. */
+  approvals?: Approvals;
+  /** The Arkiv index that search reads. Without one there is no search tool, and the agent asks the user for a name. */
+  arkiv?: ArkivReader;
+}
+
+interface Discovered {
+  ensName: string;
+  tool: ToolDeclaration;
+  protocol?: Protocol;
+  registered: RegisteredTool;
 }
 
 const text = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t }] });
 const fail = (t: string): CallToolResult => ({ content: [{ type: 'text', text: t }], isError: true });
+const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-export function createServer({ manifestDir }: ServerOptions = {}): McpServer {
+export function createServer({ client, account: configured, manifestDir, approvals = new Approvals(), arkiv }: ServerOptions = {}): McpServer {
   const server = new McpServer({ name: 'web3mcp', version: '0.0.1' });
-  const discovered = new Map<string, { manifest: Manifest; tool: ToolDeclaration }>();
+  const discovered = new Map<string, Discovered>();
   const namespaces = new Map<string, string>();
+  // The wallet writes are simulated for: from the host's settings, or set in the conversation with the wallet tool.
+  let account = configured;
+  let sender: Promise<`0x${string}`> | undefined;
 
-  // shortcut: discovered tools are registered but not executed yet; wire SDK reads and writes in build step 2.
-  const execute = async (exposed: string): Promise<CallToolResult> =>
-    fail(`${exposed} is discovered, but running tools isn't implemented yet.`);
+  // Resolve the account once, but forget a failure (a flaky RPC, a typo) so the next call retries.
+  function senderAddress(chain: ChainClient): Promise<`0x${string}` | undefined> {
+    if (!account) return Promise.resolve(undefined);
+    sender ??= resolveAddress(chain, account).catch((e) => {
+      sender = undefined;
+      throw e;
+    });
+    return sender;
+  }
+
+  async function load(ensName: string): Promise<{ manifest: Manifest; protocol?: Protocol; source: string }> {
+    const local = manifestDir ? await readFile(join(manifestDir, `${ensName}.json`), 'utf8').catch(() => undefined) : undefined;
+    if (local !== undefined) {
+      const manifest = validateManifest(JSON.parse(local));
+      if (manifest.name !== ensName) throw new Error(`That manifest is for ${manifest.name}, not ${ensName}.`);
+      return { manifest, protocol: client && (await verifyManifest(client, manifest, ensName)), source: 'a local manifest file' };
+    }
+    if (!client) throw new Error('No chain connection, so ENS lookups are unavailable.');
+    const protocol = await discoverFromEns(client, ensName);
+    return { manifest: protocol.manifest, protocol, source: 'ENS' };
+  }
+
+  async function execute(exposed: string, input: Record<string, unknown>): Promise<CallToolResult> {
+    const { tool, protocol } = discovered.get(exposed)!;
+    if (!client || !protocol) return fail(`${exposed} can't run without a chain connection.`);
+    try {
+      if (tool.kind === 'read') {
+        // Reads need the account only for a $sender argument, and the SDK reports that case itself.
+        const from = await senderAddress(client).catch(() => undefined);
+        const result = await executeRead(client, protocol, tool.name, input, from);
+        return text(typeof result === 'string' ? result : JSON.stringify(result, null, 2));
+      }
+      if (!account) return fail("No wallet set. Ask the user for their public address or ENS name, call the wallet tool with it, then try again.");
+      const prepared = await prepareWrite(client, protocol, tool.name, input, await senderAddress(client));
+      const { id, url } = await approvals.create(prepared, protocol, exposed);
+      return text(
+        `${review(exposed, prepared, protocol)}\n\n` +
+          `Opened the signing page in the browser: ${url}\n` +
+          `Ask the user to review and sign there in their own wallet, then call status with id "${id}".`,
+      );
+    } catch (e) {
+      return fail(message(e));
+    }
+  }
+
+  // A host without an index has no search tool, so the agent asks the user for a name (spec section 6).
+  if (arkiv) server.registerTool(
+    'search',
+    {
+      title: 'Search for a protocol',
+      description:
+        'Find protocols by what they can do, when the user describes a goal but names no protocol. Pass the user\'s words plus ' +
+        'synonyms, actions and token symbols, such as ["swap", "exchange", "trade", "eth", "usdc"]. Returns ENS names to pass to discover.',
+      inputSchema: { terms: z.array(z.string()).min(1).max(10).describe('Words for what the user wants to do') },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ terms }) => {
+      const unavailable = "Ask the user for the protocol's ENS name instead.";
+      // Search checks each listing against ENS, so it needs the chain connection.
+      if (!client?.chain) return fail(`Search needs a chain connection. ${unavailable}`);
+      try {
+        const found = await search(arkiv, client, terms, client.chain.id);
+        if (found.length === 0) return text(`No listed protocol matches those words. Try other words. ${unavailable}`);
+        const lines = found.map(
+          (r, i) => `${i + 1}. ${r.ens}: matched ${r.matched.join(', ')}. [Listed on Arkiv by ${r.owner}; untrusted text] ${r.description}`,
+        );
+        return text(
+          `Protocols listed on the Arkiv index whose listing still matches their ENS manifest:\n${lines.join('\n')}\n` +
+            'Call discover with the name that fits what the user asked for; discovery checks it on chain.',
+        );
+      } catch (e) {
+        return fail(`Search failed: ${message(e)}. ${unavailable}`);
+      }
+    },
+  );
 
   server.registerTool(
     'discover',
     {
       title: 'Discover a protocol',
       description:
-        'Load the tools a protocol publishes under its ENS name, such as vault.web3mcp-demo.eth. ' +
+        'Load the tools a protocol publishes under its ENS name, such as uniswap.eth. ' +
         'Its tools are added to your tool list: reads as <protocol>_<tool>, writes as tx_<protocol>_<tool>.',
       inputSchema: { name: z.string().describe('ENS name of the protocol') },
       annotations: { readOnlyHint: true, openWorldHint: true },
@@ -38,17 +144,13 @@ export function createServer({ manifestDir }: ServerOptions = {}): McpServer {
     async ({ name }) => {
       const ensName = name.trim().toLowerCase();
       if (!ENS_NAME.test(ensName)) return fail(`Not an ENS name: ${name}`);
-      if (!manifestDir) {
-        return fail('ENS discovery is not implemented yet. Set WEB3MCP_MANIFEST_DIR to a folder of <ens-name>.json manifests.');
-      }
 
-      let manifest: Manifest;
+      let loaded: Awaited<ReturnType<typeof load>>;
       try {
-        manifest = validateManifest(JSON.parse(await readFile(join(manifestDir, `${ensName}.json`), 'utf8')));
+        loaded = await load(ensName);
       } catch (e) {
-        return fail(`Could not load ${ensName}: ${e instanceof Error ? e.message : String(e)}`);
+        return fail(`Could not discover ${ensName}: ${message(e)}`);
       }
-      if (manifest.name !== ensName) return fail(`That manifest is for ${manifest.name}, not ${ensName}.`);
 
       const ns = ensName.split('.')[0].replaceAll('-', '_');
       const owner = namespaces.get(ns);
@@ -56,26 +158,58 @@ export function createServer({ manifestDir }: ServerOptions = {}): McpServer {
       namespaces.set(ns, ensName);
 
       const names: string[] = [];
-      for (const tool of manifest.tools) {
+      const listed: string[] = [];
+      for (const tool of loaded.manifest.tools) {
         const exposed = `${tool.kind === 'write' ? 'tx_' : ''}${ns}_${tool.name}`;
         names.push(exposed);
-        if (discovered.has(exposed)) continue;
-        discovered.set(exposed, { manifest, tool });
-        // Registering after connect makes the SDK send notifications/tools/list_changed.
-        server.registerTool(
-          exposed,
-          {
-            description: `[Published by ${ensName}; untrusted text] ${tool.description}`,
-            inputSchema: inputShape(tool),
-            annotations: { readOnlyHint: tool.kind === 'read', openWorldHint: true },
-          },
-          async () => execute(exposed),
-        );
+        listed.push(`${exposed}(${Object.keys(tool.inputs).join(', ')})`);
+        const description = `[Published by ${ensName}; untrusted text] ${tool.description}`;
+        const annotations = { readOnlyHint: tool.kind === 'read', openWorldHint: true };
+        // Adding, updating or removing a tool after connect makes the SDK send notifications/tools/list_changed.
+        const existing = discovered.get(exposed)?.registered;
+        existing?.update({ description, paramsSchema: inputShape(tool), annotations });
+        const registered =
+          existing ??
+          server.registerTool(exposed, { description, inputSchema: inputShape(tool), annotations }, async (input) =>
+            execute(exposed, input as Record<string, unknown>),
+          );
+        discovered.set(exposed, { ensName, tool, protocol: loaded.protocol, registered });
       }
+      // Drop tools this protocol no longer publishes, so a pulled tool can't keep running.
+      for (const [exposed, entry] of discovered) {
+        if (entry.ensName === ensName && !names.includes(exposed)) {
+          entry.registered.remove();
+          discovered.delete(exposed);
+        }
+      }
+
+      const trust = loaded.protocol
+        ? Object.entries(loaded.protocol.contracts).map(([alias, c]) => `${alias} ${c.address} (${c.trust})`).join('; ')
+        : 'not checked on chain';
       return text(
-        `Discovered ${ensName} on chain ${manifest.chainId}: ${names.join(', ')}. ` +
-          `If these tools don't appear in your tool list, run them with the call tool.`,
+        `Discovered ${ensName} from ${loaded.source}, chain ${loaded.manifest.chainId}.\n` +
+          `Contracts: ${trust}.\n` +
+          `Tools: ${listed.join(', ')}. If these don't appear in your tool list, run reads with the read tool and writes with the call tool, using these input names.`,
       );
+    },
+  );
+
+  // Clients that don't refresh their tool list (Codex) run discovered tools through these two. Splitting them lets a
+  // host's approval rules tell a read from a write: read is marked read-only, call is not.
+  server.registerTool(
+    'read',
+    {
+      title: 'Run a discovered read',
+      description:
+        'Run a read tool that discover registered, by name, such as vault_get_balance. Reads never send anything. Use this when discovered tools are missing from your tool list.',
+      inputSchema: { tool: z.string(), args: z.record(z.string(), z.unknown()).default({}) },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ tool, args }) => {
+      const entry = discovered.get(tool);
+      if (!entry) return fail(`Unknown tool ${tool}. Run discover first.`);
+      if (entry.tool.kind !== 'read') return fail(`${tool} is a write. Run it with the call tool.`);
+      return execute(tool, args);
     },
   );
 
@@ -84,14 +218,89 @@ export function createServer({ manifestDir }: ServerOptions = {}): McpServer {
     {
       title: 'Run a discovered tool',
       description:
-        'Run a tool that discover registered, by name, such as vault_get_balance. Use this when discovered tools are missing from your tool list.',
+        'Run a write tool that discover registered, by name, such as tx_vault_deposit. Use this when discovered tools are missing from your tool list; for reads, use the read tool.',
       inputSchema: { tool: z.string(), args: z.record(z.string(), z.unknown()).default({}) },
       annotations: { readOnlyHint: false, openWorldHint: true },
     },
-    async ({ tool }) => (discovered.has(tool) ? execute(tool) : fail(`Unknown tool ${tool}. Run discover first.`)),
+    async ({ tool, args }) => (discovered.has(tool) ? execute(tool, args) : fail(`Unknown tool ${tool}. Run discover first.`)),
+  );
+
+  server.registerTool(
+    'wallet',
+    {
+      title: 'Set your wallet',
+      description:
+        "Show or set the wallet that writes are simulated for: the user's public address or ENS name. Never a private key or seed phrase. Called without an address, it shows the current wallet.",
+      inputSchema: { address: z.string().optional().describe("The user's public address or ENS name") },
+      // Changes only this session's setting, nothing on chain. The signing page still requires this same wallet to sign.
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ address }) => {
+      const wanted = address?.trim();
+      if (!wanted) {
+        if (!account) return text("No wallet set. Ask the user for their public address or ENS name, then call wallet with it.");
+        const resolved = client && (await senderAddress(client).catch(() => undefined));
+        return text(`Writes are simulated for ${account}${resolved && resolved !== account ? ` (${resolved})` : ''}.`);
+      }
+      if (!client) return fail('No chain connection, so a wallet can\'t be checked.');
+      try {
+        const resolved = await resolveAddress(client, wanted);
+        account = wanted;
+        sender = Promise.resolve(resolved);
+        return text(`Writes will be simulated for ${wanted}${resolved !== wanted ? ` (${resolved})` : ''}.`);
+      } catch (e) {
+        return fail(message(e));
+      }
+    },
+  );
+
+  server.registerTool(
+    'status',
+    {
+      title: 'Check a signing request',
+      description:
+        'Check whether the user signed a write on the signing page, and whether it confirmed on chain. Waits up to 25 seconds for the user to finish.',
+      inputSchema: { id: z.string().describe('The id a write tool returned') },
+      annotations: { readOnlyHint: true, openWorldHint: true },
+    },
+    async ({ id }) => {
+      // A short wait catches the signature without polling, and stays under Codex's 60-second tool limit.
+      const approval = await approvals.wait(id, 25_000);
+      if (!approval) return fail(`No signing request with id ${id}.`);
+      if (approval.status === 'pending') return text('Still waiting for the user to sign on the signing page.');
+      if (approval.status === 'rejected') return text('The user rejected the request in their wallet. Nothing was sent.');
+      if (approval.status === 'failed') return fail(`The transaction failed: ${approval.error ?? 'unknown error'}`);
+
+      // Check the chain ourselves rather than trusting the page's report.
+      const explorer = client?.chain?.blockExplorers?.default.url;
+      const results = await Promise.all(
+        approval.hashes.map(async (hash) => {
+          const receipt = await client?.getTransactionReceipt({ hash }).catch(() => undefined);
+          const state = !receipt ? 'not found on chain yet' : receipt.status === 'success' ? 'confirmed' : 'reverted';
+          return { state, line: `${state}: ${explorer ? `${explorer}/tx/${hash}` : hash}` };
+        }),
+      );
+      const lines = results.map((r) => r.line).join('\n');
+      if (results.some((r) => r.state === 'reverted')) return fail(`The user signed, but a transaction reverted:\n${lines}`);
+      return text(`The user signed. Transactions:\n${lines}`);
+    },
   );
 
   return server;
+}
+
+function review(exposed: string, prepared: PreparedWrite, protocol: Protocol): string {
+  const steps = prepared.calls.map((c, i) => `${i + 1}. ${c.description}`).join('\n');
+  const changes = prepared.assetChanges.length
+    ? prepared.assetChanges.map((c) => `${c.symbol ?? c.token} ${c.change.startsWith('-') ? c.change : `+${c.change}`}`).join(', ')
+    : 'none';
+  const trust = Object.entries(protocol.contracts).map(([alias, c]) => `${alias} ${c.trust}`).join(', ');
+  return [
+    `Prepared ${exposed} on ${prepared.protocol} for ${prepared.account}. The simulation succeeded.`,
+    `Steps:\n${steps}`,
+    `Balance changes for this wallet: ${changes}`,
+    `Trust: ${trust}`,
+  ].join('\n');
 }
 
 function inputShape(tool: ToolDeclaration): Record<string, z.ZodType> {

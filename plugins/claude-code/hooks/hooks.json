@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"Web3MCP write: confirm before it opens your wallet signing page\"}}'"
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/confirm-writes.mjs\""
           }
         ]
       }
