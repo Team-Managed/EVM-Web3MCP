@@ -12,7 +12,7 @@ import {
   PenLine,
   Search,
 } from "lucide-react";
-import { BrandSticker } from "./BrandSticker";
+import { BrandLogo, BrandSticker } from "./BrandSticker";
 
 /**
  * Bento Grid Integrations Segment:
@@ -54,6 +54,7 @@ export function ChoosePath() {
           {/* TILE 1: Claude Code Plugin (Cobalt-Azure Gradient Accent Card)    */}
           {/* ================================================================= */}
           <div className="lg:col-span-7 bg-gradient-to-br from-[#1E3A8A] via-[#1D4ED8] to-[#2563EB] text-white rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-md relative overflow-hidden min-h-[420px] border border-blue-400/20">
+            <div className="pointer-events-none absolute -right-16 top-1/2 hidden -translate-y-1/2 opacity-90 sm:block"><BrandLogo brand="claude" size="hero" /></div>
             <div>
               {/* Top Label Strip (Clean Text, No Pills) */}
               <div className="flex items-center justify-between gap-3 mb-6 font-mono text-xs uppercase tracking-wider font-semibold">
@@ -123,7 +124,8 @@ export function ChoosePath() {
           {/* ================================================================= */}
           {/* TILE 2: Protocol Publishing via ENS                              */}
           {/* ================================================================= */}
-          <div className="lg:col-span-5 bg-[#FFFFFF] border border-[#E2DFD7] rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-sharp-sand min-h-[420px]">
+          <div className="lg:col-span-5 bg-[#FFFFFF] border border-[#E2DFD7] rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-sharp-sand min-h-[420px] relative overflow-hidden">
+            <div className="pointer-events-none absolute -right-16 bottom-[-3rem] hidden opacity-75 sm:block"><BrandLogo brand="ens" size="hero" /></div>
             <div>
               {/* Top Label Strip (Clean Text, No Pills) */}
               <div className="flex items-center justify-between gap-3 mb-6 font-mono text-xs uppercase tracking-wider font-semibold">
@@ -190,7 +192,8 @@ export function ChoosePath() {
           {/* ================================================================= */}
           {/* TILE 3: Arkiv Capability Discovery (Full-Width Bridge)           */}
           {/* ================================================================= */}
-          <div className="lg:col-span-12 bg-[#F5F3FF] border border-[#DDD6FE] rounded-3xl p-7 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 shadow-sharp-sand">
+          <div className="lg:col-span-12 bg-[#F5F3FF] border border-[#DDD6FE] rounded-3xl p-7 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 shadow-sharp-sand relative overflow-hidden">
+            <div className="pointer-events-none absolute -right-10 top-1/2 hidden -translate-y-1/2 opacity-35 lg:block"><BrandLogo brand="arkiv" size="hero" /></div>
             <div className="max-w-2xl">
               <div className="flex items-center gap-2 mb-5 font-mono text-xs uppercase tracking-wider font-semibold text-[#6D28D9]">
                 <BrandSticker brand="arkiv" compact />
@@ -235,7 +238,8 @@ export function ChoosePath() {
           {/* ================================================================= */}
           {/* TILE 4: OpenAI Codex & Generic MCP Host                           */}
           {/* ================================================================= */}
-          <div className="lg:col-span-5 bg-[#FFFFFF] border border-[#E2DFD7] rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-sharp-sand min-h-[420px]">
+          <div className="lg:col-span-5 bg-[#FFFFFF] border border-[#E2DFD7] rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-sharp-sand min-h-[420px] relative overflow-hidden">
+            <div className="pointer-events-none absolute -right-16 bottom-[-3rem] hidden opacity-70 sm:block"><BrandLogo brand="openai" size="hero" /></div>
             <div>
               {/* Top Label Strip (Clean Text, No Pills) */}
               <div className="flex items-center justify-between gap-3 mb-6 font-mono text-xs uppercase tracking-wider font-semibold">
@@ -296,6 +300,7 @@ export function ChoosePath() {
           {/* TILE 5: Air-Gapped Local Wallet Approval (approve-ui)             */}
           {/* ================================================================= */}
           <div className="lg:col-span-7 bg-[#EAF1F8] border border-[#CBD5E1] rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-sharp-sand relative overflow-hidden min-h-[420px]">
+            <div className="pointer-events-none absolute -right-16 top-1/2 hidden -translate-y-1/2 opacity-65 sm:block"><BrandLogo brand="metamask" size="hero" /></div>
             <div>
               {/* Top Label Strip (Clean Text, No Pills) */}
               <div className="flex items-center justify-between gap-3 mb-6 font-mono text-xs uppercase tracking-wider font-semibold">

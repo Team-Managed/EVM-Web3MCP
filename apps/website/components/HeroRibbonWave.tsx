@@ -2,51 +2,16 @@
 
 import React, { useEffect, useRef } from "react";
 
-export interface HeroRibbonWaveProps {
-  /**
-   * Animation speed multiplier:
-   * - 0: completely static (renders once, no requestAnimationFrame loop)
-   * - 0.12: slow, gentle drifting motion ("a bit moving in footer")
-   * - 0.45: default dynamic hero wave speed
-   */
-  speed?: number;
-  /**
-   * If true, renders a single static frame snapshot and avoids running an animation loop.
-   * Ideal for docs and editorial sections.
-   */
-  isStatic?: boolean;
-  /**
-   * Fixed time offset (in seconds) for the wave phase.
-   * Defaults to 1.0 for static frames (where ribbons are broad and clearly unfurled), or 0 for animations.
-   */
-  timeOffset?: number;
-  /**
-   * Optional CSS classes for the canvas container.
-   */
-  className?: string;
-  /**
-   * Optional opacity (0 to 1).
-   */
-  opacity?: number;
-}
-
 /**
  * Broader, Full-Coverage 3D Ribbon Wave with Vivid ASCII Art & Bayer Dithering
  * Inspired by Handhold & 3D silk ribbon topology:
- * - Sweeping 3D ribbons covering the entire canvas (top, center, bottom, left to right)
+ * - Sweeping 3D ribbons covering the entire hero section (top, center, bottom, left to right)
  * - Vivid Electric Azure/Cobalt Blue front face & Warm Golden Amber back fold
  * - High-contrast 4x4 Bayer Matrix ordered dithering with full ASCII density scale:
  *   ["·", ":", "+", "x", "*", "#", "%", "@"]
  * - Rich ambient dither stipple field across 100% of the canvas
- * - Supports animated, slow drifting, and completely static modes
  */
-export function HeroRibbonWave({
-  speed = 0.45,
-  isStatic = false,
-  timeOffset,
-  className = "",
-  opacity = 1,
-}: HeroRibbonWaveProps) {
+export function HeroRibbonWave(_props: { isStatic?: boolean; timeOffset?: number; speed?: number }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -56,9 +21,7 @@ export function HeroRibbonWave({
     if (!ctx) return;
 
     let animationFrameId: number;
-    const startTime = performance.now();
-    const effectiveSpeed = isStatic ? 0 : speed;
-    const baseTimeOffset = timeOffset ?? (isStatic ? 1.0 : 0);
+    let startTime = performance.now();
 
     // 4x4 Bayer Dithering Matrix (standard threshold distribution)
     const BAYER_4X4 = [
@@ -91,8 +54,8 @@ export function HeroRibbonWave({
     const resize = () => {
       if (!canvas || !canvas.parentElement) return;
       const rect = canvas.parentElement.getBoundingClientRect();
-      const w = Math.max(rect.width, 320);
-      const h = Math.max(rect.height, 100);
+      const w = Math.max(rect.width, 360);
+      const h = Math.max(rect.height, 600);
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
       if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
@@ -105,11 +68,12 @@ export function HeroRibbonWave({
     };
 
     resize();
+    window.addEventListener("resize", resize);
 
     const render = (now: number) => {
       const parent = canvas.parentElement;
       const w = parent ? parent.clientWidth : currentW || 1200;
-      const h = parent ? parent.clientHeight : currentH || 600;
+      const h = parent ? parent.clientHeight : currentH || 700;
 
       if (w !== currentW || h !== currentH) {
         resize();
@@ -120,8 +84,8 @@ export function HeroRibbonWave({
       ctx.fillRect(0, 0, w, h);
 
       // Animation time counter
-      const elapsed = isStatic || effectiveSpeed === 0 ? 0 : (now - startTime) * 0.001;
-      const t = baseTimeOffset + elapsed * effectiveSpeed;
+      const elapsed = (now - startTime) * 0.001;
+      const t = elapsed * 0.45;
 
       // 11px cells: optimal balance between crisp ASCII glyph definition and full-screen density
       const cellSize = 11;
@@ -145,7 +109,7 @@ export function HeroRibbonWave({
           Math.sin(normX * Math.PI * 1.9 - t * 0.75) * (h * 0.22) +
           Math.cos(normX * Math.PI * 3.1 + t * 0.4) * (h * 0.08);
 
-        // Ribbon thickness scales with container height
+        // Massive ribbon thickness: 240px to 380px thick!
         const baseThickness1 = h * 0.44;
         const thickness1 =
           baseThickness1 * (0.85 + 0.3 * Math.sin(normX * Math.PI * 1.6 + t * 0.5));
@@ -158,7 +122,7 @@ export function HeroRibbonWave({
         const projThick1 = thickness1 * (0.35 + 0.65 * Math.abs(cosTwist));
 
         // ==============================================================
-        // 2. UPPER SECONDARY WAVE (Azure & Ice Cyan flow covering upper area)
+        // 2. UPPER SECONDARY WAVE (Azure & Ice Cyan flow covering upper hero)
         // ==============================================================
         const spine2Y =
           h * 0.20 +
@@ -167,7 +131,7 @@ export function HeroRibbonWave({
         const thickness2 = (h * 0.26) * (0.8 + 0.25 * Math.cos(normX * Math.PI * 1.7 - t * 0.4));
 
         // ==============================================================
-        // 3. LOWER SECONDARY WAVE (Warm Amber & Honey flow covering lower area)
+        // 3. LOWER SECONDARY WAVE (Warm Amber & Honey flow covering lower hero)
         // ==============================================================
         const spine3Y =
           h * 0.78 +
@@ -274,42 +238,20 @@ export function HeroRibbonWave({
           }
         }
       }
+
+      animationFrameId = requestAnimationFrame(render);
     };
 
-    const handleResize = () => {
-      resize();
-      if (isStatic || effectiveSpeed === 0) {
-        render(startTime);
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-
-    if (isStatic || effectiveSpeed === 0) {
-      render(startTime);
-      return () => {
-        window.removeEventListener("resize", handleResize);
-      };
-    }
-
-    const loop = (now: number) => {
-      render(now);
-      animationFrameId = requestAnimationFrame(loop);
-    };
-
-    animationFrameId = requestAnimationFrame(loop);
+    animationFrameId = requestAnimationFrame(render);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", resize);
       cancelAnimationFrame(animationFrameId);
     };
-  }, [speed, isStatic, timeOffset]);
+  }, []);
 
   return (
-    <div
-      className={`absolute inset-0 z-0 overflow-hidden pointer-events-none select-none ${className}`}
-      style={{ opacity }}
-    >
+    <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none select-none">
       <canvas
         ref={canvasRef}
         className="w-full h-full object-cover block"

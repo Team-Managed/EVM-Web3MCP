@@ -53,11 +53,11 @@ export function BrandSticker({ brand, compact = false }: { brand: BrandKey; comp
   );
 }
 
-export function BrandLogo({ brand, size = "large" }: { brand: BrandKey; size?: "medium" | "large" }) {
+export function BrandLogo({ brand, size = "large" }: { brand: BrandKey; size?: "medium" | "large" | "hero" }) {
   const [failed, setFailed] = useState(false);
   const data = BRANDS[brand];
   return (
-    <span className={`inline-flex items-center justify-center transition-transform duration-300 hover:-translate-y-2 hover:rotate-[-3deg] ${size === "large" ? "h-32 w-32 sm:h-40 sm:w-40" : "h-24 w-24"}`} title={data.name}>
+    <span className={`inline-flex items-center justify-center transition-transform duration-300 hover:-translate-y-2 hover:rotate-[-3deg] ${size === "hero" ? "h-56 w-56 sm:h-72 sm:w-72" : size === "large" ? "h-32 w-32 sm:h-40 sm:w-40" : "h-24 w-24"}`} title={data.name}>
       {!failed ? <img src={logoUrl(data.domain)} alt={`${data.name} logo`} className="h-full w-full object-contain drop-shadow-[0_14px_0_rgba(17,19,22,0.12)]" onError={() => setFailed(true)} /> : <span className="font-editorial text-5xl text-[#7A7E87] drop-shadow-[0_8px_0_rgba(17,19,22,0.12)]">{data.initials}</span>}
     </span>
   );
