@@ -10,7 +10,9 @@ import {
   Wallet,
   CheckCircle2,
   PenLine,
+  Search,
 } from "lucide-react";
+import { BrandLogo, BrandSticker } from "./BrandSticker";
 
 /**
  * Bento Grid Integrations Segment:
@@ -51,7 +53,8 @@ export function ChoosePath() {
           {/* ================================================================= */}
           {/* TILE 1: Claude Code Plugin (Cobalt-Azure Gradient Accent Card)    */}
           {/* ================================================================= */}
-          <div className="lg:col-span-7 bg-gradient-to-br from-[#1E3A8A] via-[#1D4ED8] to-[#2563EB] text-white rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-md relative overflow-hidden min-h-[420px] border border-blue-400/20">
+          <div className="lg:col-span-7 bg-gradient-to-br from-[#1E3A8A] via-[#1D4ED8] to-[#2563EB] text-white rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-md relative overflow-hidden min-h-[420px] border border-blue-400/20 isolate">
+            <div className="pointer-events-none -z-10 absolute -bottom-3 -right-3 hidden sm:block"><BrandLogo brand="claude" /></div>
             <div>
               {/* Top Label Strip (Clean Text, No Pills) */}
               <div className="flex items-center justify-between gap-3 mb-6 font-mono text-xs uppercase tracking-wider font-semibold">
@@ -60,6 +63,7 @@ export function ChoosePath() {
                   <span>Claude Code</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-emerald-300">
+                  <BrandSticker brand="claude" compact />
                   <span className="w-1.5 h-1.5 bg-emerald-400" />
                   <span>Plugin Available</span>
                 </div>
@@ -121,7 +125,8 @@ export function ChoosePath() {
           {/* ================================================================= */}
           {/* TILE 2: Protocol Publishing via ENS                              */}
           {/* ================================================================= */}
-          <div className="lg:col-span-5 bg-[#FFFFFF] border border-[#E2DFD7] rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-sharp-sand min-h-[420px]">
+          <div className="lg:col-span-5 bg-[#FFFFFF] border border-[#E2DFD7] rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-sharp-sand min-h-[420px] relative overflow-hidden isolate">
+            <div className="pointer-events-none -z-10 absolute -bottom-3 -right-3 hidden sm:block"><BrandLogo brand="ens" /></div>
             <div>
               {/* Top Label Strip (Clean Text, No Pills) */}
               <div className="flex items-center justify-between gap-3 mb-6 font-mono text-xs uppercase tracking-wider font-semibold">
@@ -130,6 +135,7 @@ export function ChoosePath() {
                   <span>Protocol Publisher</span>
                 </div>
                 <div className="flex items-center gap-1 text-[#059669]">
+                  <BrandSticker brand="ens" compact />
                   <ShieldCheck className="w-3.5 h-3.5" />
                   <span>ENS v1 + v2</span>
                 </div>
@@ -185,9 +191,56 @@ export function ChoosePath() {
           </div>
 
           {/* ================================================================= */}
-          {/* TILE 3: OpenAI Codex & Generic MCP Host                           */}
+          {/* TILE 3: Arkiv Capability Discovery (Full-Width Bridge)           */}
           {/* ================================================================= */}
-          <div className="lg:col-span-5 bg-[#FFFFFF] border border-[#E2DFD7] rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-sharp-sand min-h-[420px]">
+          <div className="lg:col-span-12 bg-[#F5F3FF] border border-[#DDD6FE] rounded-3xl p-7 sm:p-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 shadow-sharp-sand relative overflow-hidden isolate">
+            <div className="pointer-events-none -z-10 absolute -bottom-3 -right-3 hidden sm:block"><BrandLogo brand="arkiv" /></div>
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-2 mb-5 font-mono text-xs uppercase tracking-wider font-semibold text-[#6D28D9]">
+                <BrandSticker brand="arkiv" compact />
+                <Search className="w-4 h-4" />
+                <span>Arkiv Capability Discovery</span>
+                <span className="ml-2 text-[#8B5CF6]">Optional index</span>
+              </div>
+              <h3 className="font-sans font-bold text-2xl sm:text-3xl mb-3 text-[#111316] tracking-tight leading-snug">
+                Find protocols by what they can do.
+              </h3>
+              <p className="font-sans text-xs sm:text-sm text-[#5A5D64] leading-relaxed">
+                Agents can search Arkiv when a user describes a goal without naming a protocol. The host ranks capability terms, checks the listing&apos;s ENS digest, and runs full discovery before exposing any tool. Publishers refresh their listing every 30 days to stay discoverable.
+              </p>
+            </div>
+
+            <div className="w-full lg:max-w-md bg-white border border-[#DDD6FE] rounded-2xl p-4 text-xs font-mono space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-[#EDE9FE] text-[11px]">
+                <span className="text-[#6D28D9]">Agent search</span>
+                <span className="text-[#059669] font-semibold">ENS verified</span>
+              </div>
+              <div className="text-[#111316]">&quot;swap ETH for USDC&quot;</div>
+              <div className="flex items-center gap-2 text-[10px] text-[#5A5D64]">
+                <span className="bg-[#EDE9FE] px-2 py-1 text-[#6D28D9]">swap</span>
+                <span className="bg-[#EDE9FE] px-2 py-1 text-[#6D28D9]">eth</span>
+                <span className="bg-[#EDE9FE] px-2 py-1 text-[#6D28D9]">usdc</span>
+              </div>
+              <div className="pt-2 border-t border-[#EDE9FE] flex items-center justify-between text-[10px] text-[#5A5D64]">
+                <span>Arkiv → discover → call</span>
+                <span className="text-[#059669] font-semibold">digest matches</span>
+              </div>
+            </div>
+
+            <a
+              href="/docs#search"
+              className="inline-flex shrink-0 items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-[#111316] font-semibold hover:text-[#8B5CF6] transition-colors"
+            >
+              <span>Explore Arkiv Search</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
+          {/* ================================================================= */}
+          {/* TILE 4: OpenAI Codex & Generic MCP Host                           */}
+          {/* ================================================================= */}
+          <div className="lg:col-span-5 bg-[#FFFFFF] border border-[#E2DFD7] rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-sharp-sand min-h-[420px] relative overflow-hidden isolate">
+            <div className="pointer-events-none -z-10 absolute -bottom-3 -right-3 hidden sm:block"><BrandLogo brand="openai" /></div>
             <div>
               {/* Top Label Strip (Clean Text, No Pills) */}
               <div className="flex items-center justify-between gap-3 mb-6 font-mono text-xs uppercase tracking-wider font-semibold">
@@ -195,9 +248,7 @@ export function ChoosePath() {
                   <Terminal className="w-4 h-4" />
                   <span>Open Protocol</span>
                 </div>
-                <span className="text-[#5A5D64]">
-                  stdio
-                </span>
+                <div className="flex items-center gap-2 text-[#5A5D64]"><BrandSticker brand="openai" compact /><span>stdio</span></div>
               </div>
 
               {/* Title & Copy */}
@@ -247,9 +298,10 @@ export function ChoosePath() {
           </div>
 
           {/* ================================================================= */}
-          {/* TILE 4: Local Wallet Approval (approve-ui)                        */}
+          {/* TILE 5: Local Wallet Approval (approve-ui)                        */}
           {/* ================================================================= */}
-          <div className="lg:col-span-7 bg-[#EAF1F8] border border-[#CBD5E1] rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-sharp-sand relative overflow-hidden min-h-[420px]">
+          <div className="lg:col-span-7 bg-[#EAF1F8] border border-[#CBD5E1] rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-sharp-sand relative overflow-hidden min-h-[420px] isolate">
+            <div className="pointer-events-none -z-10 absolute -bottom-3 -right-3 hidden sm:block"><BrandLogo brand="metamask" /></div>
             <div>
               {/* Top Label Strip (Clean Text, No Pills) */}
               <div className="flex items-center justify-between gap-3 mb-6 font-mono text-xs uppercase tracking-wider font-semibold">
@@ -257,9 +309,7 @@ export function ChoosePath() {
                   <Wallet className="w-4 h-4 text-[#E57E25]" />
                   <span>Zero Key Custody</span>
                 </div>
-                <span className="text-[#5A5D64]">
-                  Local Signing Host
-                </span>
+                <div className="flex items-center gap-2 text-[#5A5D64]"><BrandSticker brand="metamask" compact /><span>Local Signing Host</span></div>
               </div>
 
               {/* Title & Copy */}

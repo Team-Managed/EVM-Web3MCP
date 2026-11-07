@@ -14,6 +14,7 @@ import { MermaidDiagram } from "@/components/MermaidDiagram";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { HeroRibbonWave } from "@/components/HeroRibbonWave";
+import { BrandStickerRail } from "@/components/BrandSticker";
 import { GUARANTEES } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -136,7 +137,9 @@ const writeDiagram = `sequenceDiagram
   end`;
 
 const mcpDiagram = `flowchart LR
-  Discover["discover(name)"] --> Manifest["Validated manifest"]
+  Search["search(terms)"] --> Arkiv["Arkiv capability index"]
+  Arkiv --> Discover["discover(name)"]
+  Discover --> Manifest["Validated manifest"]
   Manifest --> List["Tool list changed"]
   List --> Read["namespace_tool"]
   List --> Write["tx_namespace_tool"]
@@ -144,15 +147,31 @@ const mcpDiagram = `flowchart LR
   Write --> Call
   Call --> Boundary["Read result or wallet boundary"]
   style Discover fill:#DBEAFE,color:#111316
+  style Search fill:#FCE7F3,color:#111316
+  style Arkiv fill:#EDE9FE,color:#111316
   style Read fill:#D1FAE5,color:#111316
   style Write fill:#FEF3C7,color:#111316
   style Boundary fill:#FCE7F3,color:#111316`;
+
+const searchDiagram = `flowchart LR
+  Goal["User goal\n'swap ETH for USDC'"] --> Terms["Normalize up to 10 terms"]
+  Terms --> Query["Arkiv query\nchainId + indexed terms"]
+  Query --> Rank["Rank by matched terms"]
+  Rank --> Digest["Compare listing digest\nwith ENS now"]
+  Digest --> Discover["Discover and verify\nthe selected ENS name"]
+  Discover --> Tools["Expose validated tools"]
+  style Goal fill:#FCE7F3,color:#111316
+  style Query fill:#EDE9FE,color:#111316
+  style Digest fill:#FEF3C7,color:#111316
+  style Discover fill:#DBEAFE,color:#111316
+  style Tools fill:#D1FAE5,color:#111316`;
 
 const sections = [
   ["overview", "Overview"],
   ["quickstart", "Quick start"],
   ["plugins", "Install plugins"],
   ["sdk", "SDK & builder"],
+  ["search", "Find protocols"],
   ["publication", "Publish a manifest"],
   ["tools", "Manifest reference"],
   ["trust", "Trust & discovery"],
@@ -163,8 +182,8 @@ const sections = [
 
 const navigationGroups = [
   { title: "Getting started", items: sections.slice(0, 4) },
-  { title: "Protocol", items: sections.slice(4, 7) },
-  { title: "Execution", items: sections.slice(7) },
+  { title: "Protocol", items: sections.slice(4, 8) },
+  { title: "Execution", items: sections.slice(8) },
 ] as const;
 
 function SectionLabel({ children, tone = "text-[#E57E25]" }: { children: React.ReactNode; tone?: string }) {
@@ -215,6 +234,7 @@ export default function DocsPage() {
             <p className="max-w-2xl text-base sm:text-lg text-[#5A5D64] leading-relaxed font-sans select-text">
               Web3MCP is an open EVM standard for publishing contract tools under an ENS name. The SDK discovers and verifies protocols, executes reads, simulates writes, and hands final approval to the user&apos;s wallet.
             </p>
+            <div className="mt-7"><p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[#7A7E87]">Ecosystem</p><BrandStickerRail brands={["ethereum", "ens", "arkiv", "claude", "openai", "metamask"]} /></div>
           </div>
         </div>
       </section>
@@ -320,6 +340,7 @@ default_tools_approval_mode = "writes"`}</CodeBlock></div>
             <SectionLabel tone="text-[#8B5CF6]">Developer tools</SectionLabel>
             <h2 className="font-editorial text-3xl font-normal sm:text-4xl">Use the SDK. Build an agent-ready protocol.</h2>
             <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">The SDK is for hosts that want direct control over discovery and execution. The builder skill is for turning an existing contract into a checked, publishable Web3MCP manifest without handing an agent a private key.</p>
+            <div className="mt-6"><BrandStickerRail brands={["node", "typescript", "viem", "ethereum"]} /></div>
             <div className="mt-8 grid gap-5 lg:grid-cols-2">
               <article className="border border-[#DDD6FE] border-t-4 border-t-[#8B5CF6] bg-[#FAF5FF] p-6">
                 <h3 className="font-editorial text-2xl font-normal">Install the SDK</h3>
@@ -355,6 +376,35 @@ node <skill-folder>/scripts/web3mcp-publish.mjs check vault.myprotocol.eth`}</Co
                 <p className="mt-4 text-xs leading-5 text-[#047857]">Never put private keys, seed phrases, admin functions, or wallet files in the manifest or environment.</p>
               </article>
             </div>
+          </section>
+
+          <section id="search" className="mt-24 scroll-mt-20 border-t border-[#E2DFD7] pt-12">
+            <SectionLabel tone="text-[#8B5CF6]">Arkiv discovery</SectionLabel>
+            <h2 className="font-editorial text-3xl font-normal sm:text-4xl">Find protocols by capability.</h2>
+            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">Arkiv is the optional search index for the host. It helps an agent find a protocol when the user describes a goal without naming an ENS name. ENS remains the source of truth: Arkiv only returns candidates, and the host must re-check the ENS digest and run normal discovery before exposing any tool.</p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+              <article className="border border-[#DDD6FE] border-t-4 border-t-[#8B5CF6] bg-[#FAF5FF] p-6">
+                <h3 className="font-editorial text-2xl font-normal">Publishers index themselves</h3>
+                <p className="mt-2 text-sm leading-6 text-[#5A5D64]">After the ENS manifest is live, the publisher writes one <code>web3mcp.listing</code> entity owned by its wallet. The listing holds only the ENS name, chain ID, manifest digest, and indexed capability terms. It carries no text of its own: hosts show the description and matched terms from the ENS manifest.</p>
+                <div className="mt-5"><CodeBlock>{`# List or refresh a published name for 30 days
+npx web3mcp-publish index agentswap.web3mcp.eth --account web3mcp`}</CodeBlock></div>
+                <p className="mt-4 text-xs leading-5 text-[#6D28D9]">The command decrypts a Foundry keystore locally. Never put a private key in an environment variable.</p>
+              </article>
+              <article className="border border-[#BFDBFE] border-t-4 border-t-[#2563EB] bg-[#EFF6FF] p-6">
+                <h3 className="font-editorial text-2xl font-normal">Hosts search, then verify</h3>
+                <p className="mt-2 text-sm leading-6 text-[#5A5D64]">Search terms are normalized, common words are removed, and matches are ranked by the number of shared terms. A result is retained only while its stored digest matches the current ENS digest.</p>
+                <div className="mt-5"><CodeBlock>{`# Search the Arkiv index directly
+npx web3mcp-publish search swap usdc`}</CodeBlock></div>
+                <p className="mt-4 text-xs leading-5 text-[#1D4ED8]">A host still calls <code>discover(name)</code> after search. Arkiv text is untrusted and cannot define executable tools.</p>
+              </article>
+            </div>
+            <div className="mt-8 border border-[#EDE9FE] bg-[#F5F3FF] p-5 text-sm leading-6 text-[#4C1D95]"><strong className="text-[#111316]">Listing lifecycle:</strong> entries expire after 30 days unless the publisher refreshes them. If the manifest changes, the old listing is removed and a new one is written in the same batch. A protocol that stops refreshing disappears from search but remains discoverable directly by ENS name.</div>
+            <MermaidDiagram chart={searchDiagram} />
+            <h3 className="mt-10 text-lg font-semibold">What is stored in Arkiv?</h3>
+            <div className="mt-5 overflow-x-auto border border-[#E2DFD7] bg-white">
+              <table className="w-full min-w-[640px] text-left text-sm"><thead className="border-b border-[#E2DFD7] bg-[#F4F1EA] text-xs uppercase tracking-wider"><tr><th className="p-4">Field</th><th className="p-4">Purpose</th></tr></thead><tbody className="divide-y divide-[#E2DFD7] text-[#5A5D64]"><tr><td className="p-4 font-mono text-xs text-[#111316]">ens</td><td className="p-4">The published ENS name.</td></tr><tr><td className="p-4 font-mono text-xs text-[#111316]">chainId</td><td className="p-4">Prevents a Sepolia user from receiving a mainnet listing, or vice versa.</td></tr><tr><td className="p-4 font-mono text-xs text-[#111316]">digest</td><td className="p-4">The ENS <code>org.web3mcp.digest</code> value captured when the listing was written.</td></tr><tr><td className="p-4 font-mono text-xs text-[#111316]">t.&lt;term&gt;</td><td className="p-4">Indexed capability flags, up to 28 terms per listing.</td></tr></tbody></table>
+            </div>
+            <p className="mt-5 text-sm leading-6 text-[#5A5D64]">The current implementation uses Arkiv&apos;s Rabdi testnet (chain <code>7794095</code>). <code>WEB3MCP_ARKIV_KEY</code> is optional; without it, the public rate-limited endpoint is used.</p>
           </section>
 
           <section id="publication" className="mt-24 scroll-mt-20 border-t border-[#E2DFD7] pt-12">
@@ -425,8 +475,8 @@ node <skill-folder>/scripts/web3mcp-publish.mjs check vault.myprotocol.eth`}</Co
           <section id="mcp" className="mt-24 scroll-mt-20 border-t border-[#E2DFD7] pt-12">
             <SectionLabel tone="text-[#2563EB]">05 / MCP</SectionLabel>
             <h2 className="font-editorial text-3xl font-normal sm:text-4xl">One generic host, every protocol.</h2>
-            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">The MCP server starts with <code>discover(name)</code> and <code>call(tool, args)</code>. Discovered tools use <code>&lt;namespace&gt;_&lt;tool&gt;</code> for reads and <code>tx_&lt;namespace&gt;_&lt;tool&gt;</code> for writes. Descriptions are treated as untrusted publisher text.</p>
-            <div className="mt-8 grid gap-3 sm:grid-cols-2"><div className="border border-[#BFDBFE] border-t-4 border-t-[#2563EB] bg-[#EFF6FF] p-5"><code className="text-xs font-bold text-[#1D4ED8]">discover(name)</code><p className="mt-2 text-sm leading-6 text-[#5A5D64]">Loads and validates a manifest, registers its tools, and notifies the client that the tool list changed.</p></div><div className="border border-[#A7F3D0] border-t-4 border-t-[#059669] bg-[#ECFDF5] p-5"><code className="text-xs font-bold text-[#047857]">call(tool, args)</code><p className="mt-2 text-sm leading-6 text-[#5A5D64]">Invokes a discovered read or prepares a write for simulation and wallet approval.</p></div></div>
+            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">The MCP server exposes <code>search(terms)</code> for capability discovery, then <code>discover(name)</code> and <code>call(tool, args)</code>. Discovered tools use <code>&lt;namespace&gt;_&lt;tool&gt;</code> for reads and <code>tx_&lt;namespace&gt;_&lt;tool&gt;</code> for writes. Descriptions and Arkiv listing text are treated as untrusted publisher input.</p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-3"><div className="border border-[#EDE9FE] border-t-4 border-t-[#8B5CF6] bg-[#F5F3FF] p-5"><code className="text-xs font-bold text-[#6D28D9]">search(terms)</code><p className="mt-2 text-sm leading-6 text-[#5A5D64]">Finds candidate ENS names through Arkiv, filters by chain, and drops stale digest mismatches.</p></div><div className="border border-[#BFDBFE] border-t-4 border-t-[#2563EB] bg-[#EFF6FF] p-5"><code className="text-xs font-bold text-[#1D4ED8]">discover(name)</code><p className="mt-2 text-sm leading-6 text-[#5A5D64]">Loads and validates a manifest, registers its tools, and notifies the client that the tool list changed.</p></div><div className="border border-[#A7F3D0] border-t-4 border-t-[#059669] bg-[#ECFDF5] p-5"><code className="text-xs font-bold text-[#047857]">call(tool, args)</code><p className="mt-2 text-sm leading-6 text-[#5A5D64]">Invokes a discovered read or prepares a write for simulation and wallet approval.</p></div></div>
             <MermaidDiagram chart={mcpDiagram} />
             <h3 className="mt-10 text-lg font-semibold">What is implemented today?</h3>
             <p className="mt-2 text-sm leading-6 text-[#5A5D64]">The current SDK discovers manifests from ENS, verifies their digest and contract code, labels trust, executes reads, prepares and simulates writes, and returns a wallet signing handoff. The MCP server also reports write status. The protocol remains a draft, so use the security and limitations guidance when moving beyond the tested Sepolia flow.</p>
