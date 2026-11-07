@@ -40,7 +40,7 @@
   "dependencies": {
     "@arkiv-network/sdk": "^1.0.1",
     "@modelcontextprotocol/sdk": "^1.32.2",
-    "@web3mcp/evm": "^0.0.1",
+    "@web3mcp/evm": "^0.0.2",
     "viem": "^2.57.16",
     "zod": "^4.6.7"
   }

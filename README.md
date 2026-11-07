@@ -33,7 +33,7 @@ Details: [spec/SPEC.md](spec/SPEC.md).
 
 | Path | What |
 |---|---|
-| `packages/sdk` | `@web3mcp/evm`: manifest validation now; ENS discovery, reads and writes next |
+| `packages/sdk` | `@web3mcp/evm`: ENS discovery, reads, simulated writes and Arkiv search |
 | `packages/mcp` | `@web3mcp/mcp`: the generic MCP server |
 | `packages/approve-ui` | Local signing page where your own wallet signs each write |
 | `plugins/claude-code` | Claude Code and Codex plugin: MCP server, a skill to use protocols, a skill to build them, and a hook that confirms every write |
