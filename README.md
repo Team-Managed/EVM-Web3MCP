@@ -4,7 +4,7 @@
   </a>
 </p>
 
-# EVM-Web3MCP
+<h1 align="center">EVM-Web3MCP</h1>
 
 <p align="center">
   <strong>Let AI agents use any smart contract, just by its ENS name.</strong>
@@ -19,10 +19,14 @@
 </p>
 
 <p align="center">
+  <a href="https://claude.ai" title="Claude Code"><img src="https://img.logo.dev/claude.ai?size=96&format=png&retina=true&token=pk_BZOhereATUe11DHE7ILvBg" alt="Claude" height="28" /></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://openai.com" title="Codex"><img src="https://img.logo.dev/openai.com?size=96&format=png&retina=true&token=pk_BZOhereATUe11DHE7ILvBg" alt="Codex" height="28" /></a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://ens.domains" title="ENS"><img src="https://img.logo.dev/ens.domains?size=96&format=png&retina=true&token=pk_BZOhereATUe11DHE7ILvBg" alt="ENS" height="28" /></a>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://uniswap.org" title="Uniswap v4"><img src="https://img.logo.dev/uniswap.org?size=96&format=png&retina=true&token=pk_BZOhereATUe11DHE7ILvBg" alt="Uniswap" height="28" /></a>
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://metamask.io" title="MetaMask"><img src="https://img.logo.dev/metamask.io?size=96&format=png&retina=true&token=pk_BZOhereATUe11DHE7ILvBg" alt="MetaMask" height="28" /></a>
 </p>
 
@@ -45,6 +49,33 @@ People got the web: sites, names that lead to them, and search engines that find
 | Signing in and paying | Your own wallet, which signs every write |
 
 No company runs a server in the middle. Protocols publish to ENS and Arkiv with their own wallets, and agents read both chains directly. The only software involved is the MCP server and signing page on your own machine. Nobody else can remove a protocol's listing, and a listing can't change what an agent runs: search only points to an ENS name, and the agent checks that name on chain before it uses it.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    User["User Prompt\n('Swap 0.01 ETH for USDC on agentswap.web3mcp.eth')"]
+    Agent["AI Agent\n(Claude Code / Codex / Cursor)"]
+    MCP["Generic MCP Server\n(@web3mcp/mcp)"]
+    ENS["ENS Text Records\n(org.web3mcp.manifest + digest)"]
+    Chain["EVM / Sepolia\n(Code check, selectors, proxies)"]
+    Sim["Simulation\n(eth_simulateV1 @ head - 2)"]
+    SignUI["Local Signing Page\n(http://127.0.0.1:<port>/approve/<id>)"]
+    Wallet["User Wallet\n(MetaMask / Rabby / EIP-5792)"]
+    Uniswap["Protocol Execution\n(AgentSwap + Uniswap v4 + Chainlink)"]
+
+    User --> Agent
+    Agent --> MCP
+    MCP -->|1. Resolve & Verify Digest| ENS
+    MCP -->|2. Check Bytecode & Trust| Chain
+    MCP -->|3. Dry-run / Simulate| Sim
+    Sim -->|4. Display Deltas & Steps| SignUI
+    SignUI -->|5. User Approves & Signs| Wallet
+    Wallet -->|6. Submit Transaction| Uniswap
+    Uniswap -->|7. Receipt Confirmation| MCP
+    MCP -->|8. Structured Result| Agent
+    Agent -->|9. Final Response| User
+```
 
 ## How it works
 
