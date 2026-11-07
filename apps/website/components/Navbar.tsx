@@ -22,7 +22,7 @@ export function Navbar() {
         <div className="flex items-center justify-between">
           {/* Brand */}
           <Link href="/" className="flex items-center group text-[#FAF9F6]">
-            <Logo size={22} showText className="group-hover:opacity-90 transition-opacity" />
+            <Logo size={28} showText className="group-hover:opacity-90 transition-opacity" />
           </Link>
 
           {/* Desktop Navigation Links */}

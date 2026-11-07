@@ -41,7 +41,7 @@ export function ChoosePath() {
           </h2>
 
           <p className="max-w-2xl mx-auto text-sm sm:text-base text-[#5A5D64] leading-relaxed font-sans">
-            Zero-overhead ENS discovery, instant MCP plugins for Claude Code & Codex, and air-gapped wallet execution.
+            Discovery straight from ENS, one MCP plugin for Claude Code & Codex, and every write signed in your own wallet.
           </p>
         </div>
 
@@ -61,7 +61,7 @@ export function ChoosePath() {
                 </div>
                 <div className="flex items-center gap-1.5 text-emerald-300">
                   <span className="w-1.5 h-1.5 bg-emerald-400" />
-                  <span>Marketplace Live</span>
+                  <span>Plugin Available</span>
                 </div>
               </div>
 
@@ -70,7 +70,7 @@ export function ChoosePath() {
                 Equip Claude with Real EVM Execution.
               </h3>
               <p className="font-sans text-xs sm:text-sm text-blue-100 leading-relaxed max-w-xl">
-                Install the official Web3MCP plugin in seconds. Claude resolves ENS manifests, executes gasless view calls, and triggers write simulations directly from your chat prompt.
+                Install the Web3MCP plugin in two commands. Claude resolves ENS manifests, runs gasless view calls, and simulates writes straight from your chat prompt.
               </p>
 
               {/* Product Micro-UI: Interactive Claude Terminal */}
@@ -85,8 +85,9 @@ export function ChoosePath() {
                   <span className="text-emerald-400 font-semibold">● plugin active</span>
                 </div>
 
-                <div className="text-[#93C5FD] font-mono text-[11px] sm:text-xs">
-                  <span className="text-white/40">$ </span>/plugin install web3mcp@evm-web3mcp
+                <div className="text-[#93C5FD] font-mono text-[11px] sm:text-xs space-y-1">
+                  <div><span className="text-white/40">$ </span>claude plugin marketplace add Team-Managed/EVM-Web3MCP</div>
+                  <div><span className="text-white/40">$ </span>claude plugin install web3mcp@evm-web3mcp</div>
                 </div>
 
                 <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-[11px] space-y-1.5">
@@ -95,7 +96,7 @@ export function ChoosePath() {
                     <span className="text-neutral-300 font-mono">agentswap.web3mcp.eth</span>
                   </div>
                   <div className="text-neutral-300 font-mono text-[10.5px]">
-                    <code>exactInputSingle(tokenIn, tokenOut, amountIn)</code>
+                    <code>tx_agentswap_eth_to_usdc(amount, min_usdc, recipient)</code>
                   </div>
                   <div className="flex items-center justify-between text-[10px] text-neutral-400 pt-1 border-t border-white/5">
                     <span>Validation: Schema v0.1-evm OK</span>
@@ -130,7 +131,7 @@ export function ChoosePath() {
                 </div>
                 <div className="flex items-center gap-1 text-[#059669]">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>ENSv2 Verified</span>
+                  <span>ENS v1 + v2</span>
                 </div>
               </div>
 
@@ -157,11 +158,11 @@ export function ChoosePath() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[#5A5D64]">Digest:</span>
-                    <span className="text-[#059669] font-semibold">0x7a1c...94dE (keccak256)</span>
+                    <span className="text-[#059669] font-semibold">0x49bd...698f (keccak256)</span>
                   </div>
                 </div>
                 <div className="pt-2 border-t border-[#E2DFD7] flex items-center justify-between text-[10px] text-[#5A5D64]">
-                  <span>Deployer Key: Non-root</span>
+                  <span>Chain: Sepolia</span>
                   <span className="text-emerald-700 font-semibold">
                     ● Owner-Verified
                   </span>
@@ -195,7 +196,7 @@ export function ChoosePath() {
                   <span>Open Protocol</span>
                 </div>
                 <span className="text-[#5A5D64]">
-                  Universal Stdio / SSE
+                  stdio
                 </span>
               </div>
 
@@ -204,7 +205,7 @@ export function ChoosePath() {
                 Standard MCP for Any Agent.
               </h3>
               <p className="font-sans text-xs sm:text-sm text-[#5A5D64] leading-relaxed">
-                Connect @web3mcp/mcp to OpenAI Codex, Cursor, Zed, or custom LLM frameworks. Fully compliant with Anthropic Model Context Protocol specifications.
+                Runs in Claude Code and Codex today, and in any MCP host that can launch a stdio server. No protocol-specific code: each protocol's tools come from its manifest.
               </p>
 
               {/* Product Micro-UI: MCP Host Connection Panel */}
@@ -246,7 +247,7 @@ export function ChoosePath() {
           </div>
 
           {/* ================================================================= */}
-          {/* TILE 4: Air-Gapped Local Wallet Approval (approve-ui)             */}
+          {/* TILE 4: Local Wallet Approval (approve-ui)                        */}
           {/* ================================================================= */}
           <div className="lg:col-span-7 bg-[#EAF1F8] border border-[#CBD5E1] rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-sharp-sand relative overflow-hidden min-h-[420px]">
             <div>
@@ -266,7 +267,7 @@ export function ChoosePath() {
                 Human-in-the-Loop Wallet Approval.
               </h3>
               <p className="font-sans text-xs sm:text-sm text-[#5A5D64] leading-relaxed max-w-xl">
-                Every state-changing write halts for human inspection on a local signing page. View decoded parameters, simulated token inflows/outflows, and approve in MetaMask.
+                Every state-changing write halts for human inspection on a local signing page. View decoded parameters, simulated token inflows/outflows, and approve in your browser wallet.
               </p>
 
               {/* Product Micro-UI: Floating Simulation & Signing Bar */}
@@ -276,7 +277,7 @@ export function ChoosePath() {
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>eth_simulateV1: 0 Reverts</span>
                   </div>
-                  <span className="text-[#5A5D64]">Oracle Check: Within ±0.2%</span>
+                  <span className="text-[#5A5D64]">Sepolia</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono">
@@ -292,7 +293,7 @@ export function ChoosePath() {
 
                 <div className="pt-2 border-t border-[#E2DFD7] flex items-center justify-between gap-3">
                   <span className="text-[11px] text-[#5A5D64] font-mono hidden sm:inline">
-                    localhost:3456/approve
+                    127.0.0.1/approve
                   </span>
                   <div className="flex items-center gap-2 ml-auto">
                     <button
@@ -306,7 +307,7 @@ export function ChoosePath() {
                       className="px-3 py-1.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg text-[11px] font-semibold shadow-xs flex items-center gap-1.5 transition-colors"
                     >
                       <PenLine className="w-3 h-3" />
-                      Sign with MetaMask
+                      Sign in wallet
                     </button>
                   </div>
                 </div>

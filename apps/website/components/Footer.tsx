@@ -31,7 +31,7 @@ export function Footer() {
         <div className="flex flex-col gap-6 border-b border-[#E2DFD7] pb-8 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="flex items-center gap-2.5 text-[#111316]">
-              <Logo size={26} />
+              <Logo size={34} />
               <span className="font-editorial text-2xl sm:text-3xl font-normal tracking-tight">
                 Web3MCP
               </span>
