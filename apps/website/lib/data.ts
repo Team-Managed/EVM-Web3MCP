@@ -1,5 +1,11 @@
 import type { NavItem, GuaranteeCard, FaqItem } from "./types";
 
+/** Where the site is served, for absolute links in metadata. */
+export const SITE_URL = "https://evm.web3mcp.org";
+
+/** The image link previews show (Open Graph and X/Twitter), from public/og.png. */
+export const SHARE_IMAGE = { url: "/og.png", width: 1200, height: 630, alt: "Web3MCP: smart contracts, as agent tools." };
+
 export const NAV_ITEMS: NavItem[] = [
   { label: "How It Works", href: "/#how-it-works" },
   { label: "Integrate", href: "/#choose-path" },

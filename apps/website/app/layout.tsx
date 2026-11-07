@@ -1,15 +1,27 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { SHARE_IMAGE, SITE_URL } from "@/lib/data";
 import "./globals.css";
 
+const title = "Web3MCP — The Open Protocol Between Smart Contracts and AI Agents";
+const description =
+  "Smart contracts publish tool manifests under their own ENS name. One plugin for Claude Code and Codex discovers them, reads contracts, simulates writes, and routes signing to your wallet.";
+
 export const metadata: Metadata = {
-  title: "Web3MCP — The Open Protocol Between Smart Contracts and AI Agents",
-  description:
-    "Smart contracts publish tool manifests under their own ENS name. One plugin for Claude Code and Codex discovers them, reads contracts, simulates writes, and routes signing to your wallet.",
-  keywords: ["Ethereum", "ENS", "Model Context Protocol", "MCP", "AI Agents", "Smart Contracts", "ETHGlobal"],
-  icons: {
-    icon: "/logo.svg",
-  },
+  metadataBase: new URL(SITE_URL),
+  // Pages set a short title, such as "Documentation", and get " — Web3MCP" appended.
+  title: { default: title, template: "%s — Web3MCP" },
+  description,
+  applicationName: "Web3MCP",
+  keywords: ["Web3MCP", "Ethereum", "ENS", "AI agents", "smart contracts", "Claude Code", "Codex", "plugin", "Arkiv", "Uniswap", "MCP", "ETHGlobal"],
+  authors: [{ name: "Team-Managed", url: "https://github.com/Team-Managed/EVM-Web3MCP" }],
+  creator: "Team-Managed",
+  alternates: { canonical: "/" },
+  icons: { icon: "/logo.svg", apple: "/apple-touch-icon.png" },
+  openGraph: { type: "website", url: "/", siteName: "Web3MCP", locale: "en_US", title, description, images: [SHARE_IMAGE] },
+  twitter: { card: "summary_large_image", title, description, images: [SHARE_IMAGE] },
 };
+
+export const viewport: Viewport = { themeColor: "#FAF9F6" };
 
 export default function RootLayout({
   children,

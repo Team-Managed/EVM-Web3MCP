@@ -17,11 +17,18 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { HeroRibbonWave } from "@/components/HeroRibbonWave";
 import { BrandStickerRail, NpmButton } from "@/components/BrandSticker";
-import { GUARANTEES } from "@/lib/data";
+import { GUARANTEES, SHARE_IMAGE } from "@/lib/data";
 
+const docsDescription =
+  "How Web3MCP works: publish a tool manifest on ENS, install the plugin for Claude Code or Codex, use the SDK and agent skills, and sign every write in your own wallet.";
+
+// A page's openGraph and twitter replace the layout's whole objects, so these repeat the shared fields.
 export const metadata: Metadata = {
-  title: "Documentation — Web3MCP",
-  description: "The Web3MCP protocol, manifest format, trust model, and integration flow.",
+  title: "Documentation",
+  description: docsDescription,
+  alternates: { canonical: "/docs" },
+  openGraph: { type: "website", url: "/docs", siteName: "Web3MCP", locale: "en_US", title: "Documentation — Web3MCP", description: docsDescription, images: [SHARE_IMAGE] },
+  twitter: { card: "summary_large_image", title: "Documentation — Web3MCP", description: docsDescription, images: [SHARE_IMAGE] },
 };
 
 const manifest = `{
