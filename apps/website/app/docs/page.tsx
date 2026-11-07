@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  ArrowRight,
   ArrowUpRight,
   CheckCircle2,
   Code2,
@@ -10,11 +11,12 @@ import {
   ShieldCheck,
   Wallet,
 } from "lucide-react";
+import { CodeBlock } from "@/components/CodeBlock";
 import { MermaidDiagram } from "@/components/MermaidDiagram";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { HeroRibbonWave } from "@/components/HeroRibbonWave";
-import { BrandStickerRail } from "@/components/BrandSticker";
+import { BrandStickerRail, NpmButton } from "@/components/BrandSticker";
 import { GUARANTEES } from "@/lib/data";
 
 export const metadata: Metadata = {
@@ -67,7 +69,7 @@ const writeExample = `{
 }`;
 
 const architectureDiagram = `flowchart LR
-  Agent[AI agent] --> Host[Generic MCP host]
+  Agent[AI agent] --> Host[Web3MCP plugin]
   Host --> ENS[ENS manifest + digest]
   Host --> RPC[EVM RPC]
   Host --> Wallet[User wallet]
@@ -85,7 +87,7 @@ const architectureDiagram = `flowchart LR
 const publicationDiagram = `sequenceDiagram
   participant P as Protocol
   participant E as ENS
-  participant H as Host
+  participant H as Plugin
   P->>P: Serialize manifest exactly
   P->>E: Write org.web3mcp.manifest
   P->>E: Write keccak256 digest
@@ -102,7 +104,7 @@ const validationDiagram = `flowchart TD
   E -- No --> X
   E -- Yes --> F[Check code + selectors]
   F --> G[Record code fingerprint]
-  G --> H[Register MCP tools]
+  G --> H[Add tools to the agent]
   style C fill:#FEF3C7,color:#111316
   style X fill:#FEE2E2,color:#991B1B
   style D fill:#DBEAFE,color:#111316
@@ -121,7 +123,7 @@ const trustDiagram = `flowchart LR
 
 const writeDiagram = `sequenceDiagram
   participant A as Agent
-  participant H as Host
+  participant H as Plugin
   participant S as Simulation
   participant U as User wallet
   A->>H: call(tx_namespace_tool, args)
@@ -171,31 +173,24 @@ const sections = [
   ["quickstart", "Quick start"],
   ["plugins", "Install plugins"],
   ["sdk", "SDK & builder"],
+  ["skills", "Agent skills"],
   ["search", "Find protocols"],
   ["publication", "Publish a manifest"],
   ["tools", "Manifest reference"],
   ["trust", "Trust & discovery"],
   ["writes", "Writes & signing"],
-  ["mcp", "MCP exposure"],
+  ["mcp", "Plugin tools"],
   ["guarantees", "Security invariants"],
 ] as const;
 
 const navigationGroups = [
-  { title: "Getting started", items: sections.slice(0, 4) },
-  { title: "Protocol", items: sections.slice(4, 8) },
-  { title: "Execution", items: sections.slice(8) },
+  { title: "Getting started", items: sections.slice(0, 5) },
+  { title: "Protocol", items: sections.slice(5, 9) },
+  { title: "Execution", items: sections.slice(9) },
 ] as const;
 
 function SectionLabel({ children, tone = "text-[#E57E25]" }: { children: React.ReactNode; tone?: string }) {
   return <p className={`mb-3 font-sans text-[11px] font-bold uppercase tracking-[0.2em] ${tone}`}>{children}</p>;
-}
-
-function CodeBlock({ children }: { children: string }) {
-  return (
-    <pre className="no-scrollbar overflow-x-auto whitespace-pre-wrap break-words border border-[#2C3036] bg-[#111316] p-5 font-mono text-xs leading-6 text-[#E8E5DD] shadow-[5px_5px_0_#D6C8B1]">
-      <code>{children}</code>
-    </pre>
-  );
 }
 
 export default function DocsPage() {
@@ -234,7 +229,7 @@ export default function DocsPage() {
             <p className="max-w-2xl text-base sm:text-lg text-[#5A5D64] leading-relaxed font-sans select-text">
               Web3MCP is an open EVM standard for publishing contract tools under an ENS name. The SDK discovers and verifies protocols, executes reads, simulates writes, and hands final approval to the user&apos;s wallet.
             </p>
-            <div className="mt-7"><p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[#7A7E87]">Ecosystem</p><BrandStickerRail brands={["ethereum", "ens", "arkiv", "claude", "openai", "metamask"]} /></div>
+            <div className="mt-7"><p className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-[#7A7E87]">Ecosystem</p><BrandStickerRail small brands={["ethereum", "ens", "arkiv", "claude", "openai", "metamask", "npm"]} /></div>
           </div>
         </div>
       </section>
@@ -290,7 +285,7 @@ export default function DocsPage() {
                 ["02", "Describe contracts", "Add lowercase aliases and deployed addresses for one EVM chain."],
                 ["03", "Declare tools", "Expose read calls and write sequences with explicit inputs."],
                 ["04", "Publish two records", "Write the manifest and its keccak256 digest to ENS text records."],
-                ["05", "Connect a generic host", "Call discover(name); users approve writes in their own wallet."],
+                ["05", "Install the plugin", "Agents call discover(name); users approve writes in their own wallet."],
               ].map(([number, title, text]) => (
                 <li key={number} className={`flex gap-4 border border-[#E2DFD7] bg-white p-5 ${number === "01" || number === "04" ? "border-l-4 border-l-[#2563EB]" : number === "02" || number === "05" ? "border-l-4 border-l-[#059669]" : "border-l-4 border-l-[#D97706]"}`}>
                   <span className={`font-mono text-xs font-bold ${number === "01" || number === "04" ? "text-[#2563EB]" : number === "02" || number === "05" ? "text-[#059669]" : "text-[#D97706]"}`}>{number}</span>
@@ -299,33 +294,34 @@ export default function DocsPage() {
               ))}
             </ol>
             <div className="mt-8 border border-[#B7D4FF] bg-[#EFF6FF] p-5 text-sm leading-6 text-[#3B4A61]">
-              <strong className="text-[#111316]">Important boundary:</strong> a publisher supplies metadata and contract bindings; the host remains generic. Do not put private keys, seed phrases, API keys, or protocol-specific signing logic in a manifest.
+              <strong className="text-[#111316]">Important boundary:</strong> a publisher supplies metadata and contract bindings; the plugin stays the same for every protocol. Do not put private keys, seed phrases, API keys, or protocol-specific signing logic in a manifest.
+            </div>
+            <div className="mt-4 border border-[#A7F3D0] bg-[#ECFDF5] p-5 text-sm leading-6 text-[#35624B]">
+              <strong className="text-[#111316]">Let your agent do steps 1–4:</strong> the <code>web3mcp-build</code> skill reads your contract, writes and checks the manifest, and prepares the ENS records for you to sign. <a href="#skills" className="font-semibold text-[#047857] underline underline-offset-2">See the agent skills</a>.
             </div>
           </section>
 
           <section id="plugins" className="mt-24 scroll-mt-20 border-t border-[#E2DFD7] pt-12">
             <SectionLabel tone="text-[#8B5CF6]">Agent integrations</SectionLabel>
             <h2 className="font-editorial text-3xl font-normal sm:text-4xl">Install the tools for your agent.</h2>
-            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">The repository provides the same Web3MCP plugin for Claude Code and Codex. Add this repository as a marketplace, install <code>web3mcp@evm-web3mcp</code>, then restart the agent so the bundled MCP server, signing page, and skill are loaded.</p>
+            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">The repository provides the same Web3MCP plugin for Claude Code and Codex. Add this repository as a marketplace, install <code>web3mcp@evm-web3mcp</code>, then restart the agent. The plugin carries everything compiled in: the server, the signing page and the skills.</p>
 
             <div className="mt-8 grid gap-5 lg:grid-cols-2">
               <article className="border border-[#DDD6FE] border-t-4 border-t-[#8B5CF6] bg-[#FAF5FF] p-6">
                 <div className="flex items-center justify-between gap-4"><h3 className="font-editorial text-2xl font-normal">Claude Code</h3><span className="bg-[#EDE9FE] px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-[#6D28D9]">Available</span></div>
                 <p className="mt-2 text-sm leading-6 text-[#5A5D64]">Install the <code>web3mcp</code> plugin from the <code>evm-web3mcp</code> marketplace.</p>
                 <h4 className="mt-6 text-xs font-bold uppercase tracking-wider text-[#6D28D9]">CLI</h4>
-                <div className="mt-3"><CodeBlock>{`/plugin marketplace add Team-Managed/EVM-Web3MCP
-/plugin install web3mcp@evm-web3mcp`}</CodeBlock></div>
+                <div className="mt-3 space-y-3"><CodeBlock label="1. Add the marketplace">{`/plugin marketplace add Team-Managed/EVM-Web3MCP`}</CodeBlock><CodeBlock label="2. Install the plugin">{`/plugin install web3mcp@evm-web3mcp`}</CodeBlock></div>
                 <h4 className="mt-6 text-xs font-bold uppercase tracking-wider text-[#6D28D9]">Interactive UI</h4>
                 <ol className="mt-3 space-y-2 text-sm leading-6 text-[#5A5D64]"><li><strong className="text-[#111316]">1.</strong> Run <code>/plugin</code> in Claude Code.</li><li><strong className="text-[#111316]">2.</strong> Open <strong>Marketplaces</strong> and choose <strong>Add marketplace</strong>.</li><li><strong className="text-[#111316]">3.</strong> Enter <code>Team-Managed/EVM-Web3MCP</code>, then select <strong>web3mcp</strong> and install it.</li></ol>
-                <p className="mt-5 border-t border-[#DDD6FE] pt-4 text-xs leading-5 text-[#6D28D9]">Start a new Claude Code session after installation so the skill and MCP configuration are loaded.</p>
+                <p className="mt-5 border-t border-[#DDD6FE] pt-4 text-xs leading-5 text-[#6D28D9]">Start a new Claude Code session after installation so the plugin and its skills are loaded.</p>
               </article>
 
               <article className="border border-[#BFDBFE] border-t-4 border-t-[#2563EB] bg-[#EFF6FF] p-6">
-                <div className="flex items-center justify-between gap-4"><h3 className="font-editorial text-2xl font-normal">Codex</h3><span className="bg-[#DBEAFE] px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-[#1D4ED8]">MCP setup</span></div>
-                <p className="mt-2 text-sm leading-6 text-[#5A5D64]">Codex installs the same marketplace plugin as Claude Code, including the bundled server, local signing page, and Codex skill.</p>
+                <div className="flex items-center justify-between gap-4"><h3 className="font-editorial text-2xl font-normal">Codex</h3><span className="bg-[#DBEAFE] px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-[#1D4ED8]">Available</span></div>
+                <p className="mt-2 text-sm leading-6 text-[#5A5D64]">Codex installs the same marketplace plugin as Claude Code, with the server compiled in, the local signing page and the skills.</p>
                 <h4 className="mt-6 text-xs font-bold uppercase tracking-wider text-[#1D4ED8]">CLI</h4>
-                <div className="mt-3"><CodeBlock>{`codex plugin marketplace add Team-Managed/EVM-Web3MCP
-codex plugin add web3mcp@evm-web3mcp`}</CodeBlock></div>
+                <div className="mt-3 space-y-3"><CodeBlock label="1. Add the marketplace">{`codex plugin marketplace add Team-Managed/EVM-Web3MCP`}</CodeBlock><CodeBlock label="2. Install the plugin">{`codex plugin add web3mcp@evm-web3mcp`}</CodeBlock></div>
                 <p className="mt-3 text-xs leading-5 text-[#5A5D64]">Restart Codex. To ask before non-read tools, set this in <code>~/.codex/config.toml</code>:</p>
                 <div className="mt-2"><CodeBlock>{`[plugins."web3mcp@evm-web3mcp".mcp_servers.web3mcp]
 default_tools_approval_mode = "writes"`}</CodeBlock></div>
@@ -339,13 +335,14 @@ default_tools_approval_mode = "writes"`}</CodeBlock></div>
           <section id="sdk" className="mt-24 scroll-mt-20 border-t border-[#E2DFD7] pt-12">
             <SectionLabel tone="text-[#8B5CF6]">Developer tools</SectionLabel>
             <h2 className="font-editorial text-3xl font-normal sm:text-4xl">Use the SDK. Build an agent-ready protocol.</h2>
-            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">The SDK is for hosts that want direct control over discovery and execution. The builder skill is for turning an existing contract into a checked, publishable Web3MCP manifest without handing an agent a private key.</p>
-            <div className="mt-6"><BrandStickerRail brands={["node", "typescript", "viem", "ethereum"]} /></div>
+            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">The SDK is for your own app or agent when you want direct control over discovery and execution. The builder skill is for turning an existing contract into a checked, publishable Web3MCP manifest without handing an agent a private key.</p>
+            <div className="mt-6"><BrandStickerRail small brands={["npm", "node", "typescript", "viem", "ethereum"]} /></div>
             <div className="mt-8 grid gap-5 lg:grid-cols-2">
               <article className="border border-[#DDD6FE] border-t-4 border-t-[#8B5CF6] bg-[#FAF5FF] p-6">
                 <h3 className="font-editorial text-2xl font-normal">Install the SDK</h3>
                 <p className="mt-2 text-sm leading-6 text-[#5A5D64]">Use a viem public client. The SDK discovers ENS manifests, executes reads, and prepares simulated writes for your own wallet boundary.</p>
                 <div className="mt-5"><CodeBlock>{`npm install @web3mcp/evm viem`}</CodeBlock></div>
+                <div className="mt-4"><NpmButton /></div>
                 <div className="mt-4"><CodeBlock>{`import { createPublicClient, http } from "viem";
 import { sepolia } from "viem/chains";
 import { discover, executeRead, prepareWrite } from "@web3mcp/evm";
@@ -364,38 +361,57 @@ const write = await prepareWrite(client, protocol, "eth_to_usdc", {
               <article className="border border-[#A7F3D0] border-t-4 border-t-[#059669] bg-[#ECFDF5] p-6">
                 <h3 className="font-editorial text-2xl font-normal">Build and publish</h3>
                 <p className="mt-2 text-sm leading-6 text-[#5A5D64]">Use the <code>web3mcp-build</code> skill for an existing contract, a new contract, an adapter, or a manifest update.</p>
-                <div className="mt-5"><CodeBlock>{`# Format-only validation
-node <skill-folder>/scripts/web3mcp-publish.mjs validate vault.myprotocol.eth.json
-
-# Validate against the chain and print ENS records
-node <skill-folder>/scripts/web3mcp-publish.mjs check vault.myprotocol.eth.json
-
-# Discover and verify an already-published name
-node <skill-folder>/scripts/web3mcp-publish.mjs check vault.myprotocol.eth`}</CodeBlock></div>
+                <div className="mt-5"><CodeBlock label="Install the skill in Claude Code, Codex, Cursor and other agents (it also ships with the plugin)">{`npx skills add Team-Managed/EVM-Web3MCP --skill web3mcp-build`}</CodeBlock></div>
+                <div className="mt-4 space-y-3"><CodeBlock label="Format-only validation">{`node <skill-folder>/scripts/web3mcp-publish.mjs validate vault.myprotocol.eth.json`}</CodeBlock><CodeBlock label="Validate against the chain and print ENS records">{`node <skill-folder>/scripts/web3mcp-publish.mjs check vault.myprotocol.eth.json`}</CodeBlock><CodeBlock label="Discover and verify an already-published name">{`node <skill-folder>/scripts/web3mcp-publish.mjs check vault.myprotocol.eth`}</CodeBlock></div>
                 <ol className="mt-4 space-y-2 text-sm leading-6 text-[#35624B]"><li><strong className="text-[#111316]">1.</strong> Read the contract and list user-facing reads and writes.</li><li><strong className="text-[#111316]">2.</strong> Write the manifest and run <code>validate</code>.</li><li><strong className="text-[#111316]">3.</strong> Run <code>check</code>, review trust levels and the two ENS records, then publish with the user&apos;s wallet or Foundry keystore.</li></ol>
                 <p className="mt-4 text-xs leading-5 text-[#047857]">Never put private keys, seed phrases, admin functions, or wallet files in the manifest or environment.</p>
+                <a href="#skills" className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#047857] hover:text-[#111316]">What the skills do <ArrowRight className="h-3.5 w-3.5" /></a>
               </article>
             </div>
+          </section>
+
+          <section id="skills" className="mt-24 scroll-mt-20 border-t border-[#E2DFD7] pt-12">
+            <SectionLabel tone="text-[#059669]">Agent skills</SectionLabel>
+            <h2 className="font-editorial text-3xl font-normal sm:text-4xl">Two skills teach your agent Web3MCP.</h2>
+            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">A skill is a set of instructions your coding agent loads when a task needs it. Web3MCP ships two: one to use protocols, one to build them. Both come with the Web3MCP plugin for Claude Code and Codex, and the builder also installs on its own.</p>
+            <div className="mt-8 grid gap-5 lg:grid-cols-2">
+              <article className="border border-[#BFDBFE] border-t-4 border-t-[#2563EB] bg-[#EFF6FF] p-6">
+                <div className="flex items-center justify-between gap-4"><h3 className="font-mono text-lg font-bold">web3mcp</h3><span className="bg-[#DBEAFE] px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-[#1D4ED8]">Use protocols</span></div>
+                <p className="mt-3 text-sm leading-6 text-[#5A5D64]">Lets the agent act on any protocol that publishes Web3MCP tools. It finds the protocol by ENS name, or searches by goal when you name none, checks its trust level, runs reads, and hands every write to your wallet.</p>
+                <h4 className="mt-6 text-xs font-bold uppercase tracking-wider text-[#1D4ED8]">Install</h4>
+                <p className="mt-2 text-sm leading-6 text-[#5A5D64]">Comes with the plugin. <a href="#plugins" className="font-semibold text-[#1D4ED8] underline underline-offset-2">Install the plugin</a>, then restart your agent.</p>
+                <h4 className="mt-6 text-xs font-bold uppercase tracking-wider text-[#1D4ED8]">Try</h4>
+                <div className="mt-3 space-y-3"><CodeBlock label="By ENS name">{`swap 0.01 ETH for USDC on agentswap.web3mcp.eth`}</CodeBlock><CodeBlock label="By goal">{`swap my ETH to USDC`}</CodeBlock></div>
+              </article>
+              <article className="border border-[#A7F3D0] border-t-4 border-t-[#059669] bg-[#ECFDF5] p-6">
+                <div className="flex items-center justify-between gap-4"><h3 className="font-mono text-lg font-bold">web3mcp-build</h3><span className="bg-[#D1FAE5] px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-[#047857]">Build protocols</span></div>
+                <p className="mt-3 text-sm leading-6 text-[#5A5D64]">Teaches a coding agent to make a contract agent-ready: write and check its manifest, design or upgrade the contract, and publish its tools on ENS. It carries its own checker, so it needs only Node 22.</p>
+                <h4 className="mt-6 text-xs font-bold uppercase tracking-wider text-[#047857]">Install</h4>
+                <p className="mt-2 text-sm leading-6 text-[#5A5D64]">Comes with the plugin, or add it on its own to Claude Code, Codex, Cursor and other agents:</p>
+                <div className="mt-3"><CodeBlock>{`npx skills add Team-Managed/EVM-Web3MCP --skill web3mcp-build`}</CodeBlock></div>
+                <h4 className="mt-6 text-xs font-bold uppercase tracking-wider text-[#047857]">Try</h4>
+                <div className="mt-3"><CodeBlock>{`make my vault at 0x… usable by agents under vault.myprotocol.eth`}</CodeBlock></div>
+              </article>
+            </div>
+            <p className="mt-6 text-xs leading-5 text-[#5A5D64]">Neither skill ever asks for a private key. Writes and ENS publishing are signed in your own wallet or a Foundry keystore.</p>
           </section>
 
           <section id="search" className="mt-24 scroll-mt-20 border-t border-[#E2DFD7] pt-12">
             <SectionLabel tone="text-[#8B5CF6]">Arkiv discovery</SectionLabel>
             <h2 className="font-editorial text-3xl font-normal sm:text-4xl">Find protocols by capability.</h2>
-            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">Arkiv is the optional search index for the host. It helps an agent find a protocol when the user describes a goal without naming an ENS name. ENS remains the source of truth: Arkiv only returns candidates, and the host must re-check the ENS digest and run normal discovery before exposing any tool.</p>
+            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">Arkiv is the optional search index the plugin uses. It helps an agent find a protocol when the user describes a goal without naming an ENS name. ENS remains the source of truth: Arkiv only returns candidates, and the host must re-check the ENS digest and run normal discovery before exposing any tool.</p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               <article className="border border-[#DDD6FE] border-t-4 border-t-[#8B5CF6] bg-[#FAF5FF] p-6">
                 <h3 className="font-editorial text-2xl font-normal">Publishers index themselves</h3>
                 <p className="mt-2 text-sm leading-6 text-[#5A5D64]">After the ENS manifest is live, the publisher writes one <code>web3mcp.listing</code> entity owned by its wallet. The listing holds only the ENS name, chain ID, manifest digest, and indexed capability terms. It carries no text of its own: hosts show the description and matched terms from the ENS manifest.</p>
-                <div className="mt-5"><CodeBlock>{`# List or refresh a published name for 30 days
-npx web3mcp-publish index agentswap.web3mcp.eth --account web3mcp`}</CodeBlock></div>
+                <div className="mt-5"><CodeBlock label="List or refresh a published name for 30 days">{`npx web3mcp-publish index agentswap.web3mcp.eth --account web3mcp`}</CodeBlock></div>
                 <p className="mt-4 text-xs leading-5 text-[#6D28D9]">The command decrypts a Foundry keystore locally. Never put a private key in an environment variable.</p>
               </article>
               <article className="border border-[#BFDBFE] border-t-4 border-t-[#2563EB] bg-[#EFF6FF] p-6">
-                <h3 className="font-editorial text-2xl font-normal">Hosts search, then verify</h3>
+                <h3 className="font-editorial text-2xl font-normal">The plugin searches, then verifies</h3>
                 <p className="mt-2 text-sm leading-6 text-[#5A5D64]">Search terms are normalized, common words are removed, and matches are ranked by the number of shared terms. A result is retained only while its stored digest matches the current ENS digest.</p>
-                <div className="mt-5"><CodeBlock>{`# Search the Arkiv index directly
-npx web3mcp-publish search swap usdc`}</CodeBlock></div>
-                <p className="mt-4 text-xs leading-5 text-[#1D4ED8]">A host still calls <code>discover(name)</code> after search. Arkiv text is untrusted and cannot define executable tools.</p>
+                <div className="mt-5"><CodeBlock label="Search the Arkiv index directly">{`npx web3mcp-publish search swap usdc`}</CodeBlock></div>
+                <p className="mt-4 text-xs leading-5 text-[#1D4ED8]">The plugin still calls <code>discover(name)</code> after search. Arkiv text is untrusted and cannot define executable tools.</p>
               </article>
             </div>
             <div className="mt-8 border border-[#EDE9FE] bg-[#F5F3FF] p-5 text-sm leading-6 text-[#4C1D95]"><strong className="text-[#111316]">Listing lifecycle:</strong> entries expire after 30 days unless the publisher refreshes them. If the manifest changes, the old listing is removed and a new one is written in the same batch. A protocol that stops refreshing disappears from search but remains discoverable directly by ENS name.</div>
@@ -411,14 +427,14 @@ npx web3mcp-publish search swap usdc`}</CodeBlock></div>
             <SectionLabel tone="text-[#2563EB]">01 / Publication</SectionLabel>
             <h2 className="font-editorial text-3xl font-normal sm:text-4xl">Publish one manifest to ENS.</h2>
             <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">
-              Store two text records on the protocol&apos;s ENS name. The manifest describes every contract and tool; the digest is the keccak256 hash of the exact manifest record bytes. ENS is the source of truth, while indexes are only caches.
+              Store two text records on the protocol&apos;s ENS name. The manifest describes every contract and tool; the digest is the keccak256 hash of the exact manifest record bytes. ENS is the source of truth, while indexes are only caches. The <a href="#skills" className="font-semibold text-[#2563EB] underline underline-offset-2"><code>web3mcp-build</code> skill</a> can write, check and prepare both records with you.
             </p>
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
               <div className="border border-[#BFDBFE] border-t-4 border-t-[#2563EB] bg-[#EFF6FF] p-5"><code className="text-xs font-bold text-[#1D4ED8]">org.web3mcp.manifest</code><p className="mt-2 text-sm text-[#5A5D64]">The manifest JSON.</p></div>
               <div className="border border-[#A7F3D0] border-t-4 border-t-[#059669] bg-[#ECFDF5] p-5"><code className="text-xs font-bold text-[#047857]">org.web3mcp.digest</code><p className="mt-2 text-sm text-[#5A5D64]">0x-prefixed keccak256 digest.</p></div>
             </div>
             <div className="mt-8"><CodeBlock>{manifest}</CodeBlock></div>
-            <p className="mt-5 text-sm leading-6 text-[#5A5D64]">The digest must be computed from the exact bytes stored in the manifest record. Changing whitespace or ordering changes the digest. A host rejects a mismatch before parsing or exposing tools.</p>
+            <p className="mt-5 text-sm leading-6 text-[#5A5D64]">The digest must be computed from the exact bytes stored in the manifest record. Changing whitespace or ordering changes the digest. The plugin rejects a mismatch before parsing or exposing tools.</p>
             <MermaidDiagram chart={publicationDiagram} />
           </section>
 
@@ -427,7 +443,7 @@ npx web3mcp-publish search swap usdc`}</CodeBlock></div>
             <h2 className="font-editorial text-3xl font-normal sm:text-4xl">Keep tools explicit and small.</h2>
             <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">A manifest contains 1–32 uniquely named tools. Names are lowercase identifiers. Every contract reference is an alias, and every argument is either a validated literal or a declared binding.</p>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <div className="border-l-4 border-[#2563EB] bg-[#EFF6FF] p-5"><h3 className="font-semibold text-[#1D4ED8]">Read tools</h3><p className="mt-2 text-sm leading-6 text-[#5A5D64]">One call to a <code>view</code> or <code>pure</code> function. Reads are gasless and expose <code>readOnlyHint</code> over MCP.</p></div>
+              <div className="border-l-4 border-[#2563EB] bg-[#EFF6FF] p-5"><h3 className="font-semibold text-[#1D4ED8]">Read tools</h3><p className="mt-2 text-sm leading-6 text-[#5A5D64]">One call to a <code>view</code> or <code>pure</code> function. Reads are gasless, and the plugin marks them read-only so agents can run them without a prompt.</p></div>
               <div className="border-l-4 border-[#D97706] bg-[#FFFBEB] p-5"><h3 className="font-semibold text-[#B45309]">Write tools</h3><p className="mt-2 text-sm leading-6 text-[#5A5D64]">One to four state-changing calls or ERC-20 approvals, simulated together before signing.</p></div>
             </div>
             <p className="mt-6 text-sm leading-6 text-[#5A5D64]">Supported input types are <code>address</code>, <code>amount</code>, <code>ether</code>, <code>uint256</code>, <code>bool</code>, <code>bytes32</code>, and <code>string</code>. Read tools may also declare formatted outputs or a non-view <code>dryRun</code>. Bindings include <code>$input.name</code>, <code>$sender</code>, and <code>$contracts.alias</code>.</p>
@@ -436,7 +452,7 @@ npx web3mcp-publish search swap usdc`}</CodeBlock></div>
               "><tr><td className="p-4 font-mono text-xs text-[#111316]">name</td><td className="p-4">Lowercase identifier, 1–32 characters, unique in the manifest.</td></tr><tr><td className="p-4 font-mono text-xs text-[#111316]">description</td><td className="p-4">Required, human-readable, maximum 500 characters.</td></tr><tr><td className="p-4 font-mono text-xs text-[#111316]">contracts</td><td className="p-4">Lowercase aliases mapped to 20-byte hexadecimal addresses.</td></tr><tr><td className="p-4 font-mono text-xs text-[#111316]">steps</td><td className="p-4">Write tools contain 1–4 calls or ERC-20 approvals.</td></tr></tbody></table>
             </div>
             <h3 className="mt-10 text-lg font-semibold">Write tool example</h3>
-            <p className="mt-2 text-sm leading-6 text-[#5A5D64]">Approvals and calls are one declared sequence. The host resolves bindings, validates the ABI argument count and mutability, then simulates the sequence atomically.</p>
+            <p className="mt-2 text-sm leading-6 text-[#5A5D64]">Approvals and calls are one declared sequence. The plugin resolves bindings, validates the ABI argument count and mutability, then simulates the sequence atomically.</p>
             <div className="mt-5"><CodeBlock>{writeExample}</CodeBlock></div>
             <MermaidDiagram chart={validationDiagram} />
           </section>
@@ -444,12 +460,12 @@ npx web3mcp-publish search swap usdc`}</CodeBlock></div>
           <section id="trust" className="mt-24 scroll-mt-20 border-t border-[#E2DFD7] pt-12">
             <SectionLabel tone="text-[#059669]">03 / Discovery</SectionLabel>
             <h2 className="font-editorial text-3xl font-normal sm:text-4xl">Verify before exposing anything.</h2>
-            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">The host resolves ENS, checks the digest, validates the schema, confirms contract code and selectors, and records fingerprints. Unknown fields, aliases, bindings, or unsafe read calls fail discovery.</p>
+            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">The plugin resolves ENS, checks the digest, validates the schema, confirms contract code and selectors, and records fingerprints. Unknown fields, aliases, bindings, or unsafe read calls fail discovery.</p>
             <div className="mt-8 space-y-3">
               {[
                 [ShieldCheck, "Owner-verified", "The contract’s ENS primary name points back to the publishing name."],
-                [LockKeyhole, "Name-only", "The publishing name is the only authority, so the host asks for extra confirmation."],
-                [CheckCircle2, "Cache-safe", "Arkiv can help find a protocol, but the host always re-reads and verifies ENS."],
+                [LockKeyhole, "Name-only", "The publishing name is the only authority, so the plugin asks for extra confirmation."],
+                [CheckCircle2, "Cache-safe", "Arkiv can help find a protocol, but the plugin always re-reads and verifies ENS."],
               ].map(([Icon, title, text]) => {
                 const TrustIcon = Icon as typeof ShieldCheck;
                 const trustColor = title === "Owner-verified" ? "#059669" : title === "Name-only" ? "#D97706" : "#2563EB";
@@ -466,23 +482,24 @@ npx web3mcp-publish search swap usdc`}</CodeBlock></div>
           <section id="writes" className="mt-24 scroll-mt-20 border-t border-[#E2DFD7] pt-12">
             <SectionLabel tone="text-[#D97706]">04 / Execution</SectionLabel>
             <h2 className="font-editorial text-3xl font-normal sm:text-4xl">Simulate first. Sign last.</h2>
-            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">The host builds every write, simulates the complete sequence with <code>eth_simulateV1</code>, and shows decoded calls, gas, and exact balance changes. It re-checks fingerprints immediately before asking the wallet to sign.</p>
+            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">The plugin builds every write, simulates the complete sequence with <code>eth_simulateV1</code>, and shows decoded calls, gas, and exact balance changes. It re-checks fingerprints immediately before asking the wallet to sign.</p>
             <div className="mt-8 border border-[#16181B] bg-[#111316] p-6 text-sm text-[#E8E5DD] shadow-[5px_5px_0_#E57E25]"><div className="flex items-center gap-2 text-[#7EE2A8]"><Code2 className="h-4 w-4" /> Execution boundary</div><p className="mt-4 leading-7">Agent intent → ENS discovery → ABI validation → state simulation → user wallet approval</p><p className="mt-4 border-t border-white/10 pt-4 text-xs leading-6 text-[#A0A4AE]">The LLM never signs and never receives a private key.</p></div>
             <div className="mt-8 grid gap-3 sm:grid-cols-3"><div className="border border-[#E2DFD7] bg-white p-4"><strong className="text-sm">Before simulation</strong><p className="mt-2 text-xs leading-5 text-[#5A5D64]">Validate calldata, bindings, code fingerprints, and wallet context.</p></div><div className="border border-[#E2DFD7] bg-white p-4"><strong className="text-sm">After simulation</strong><p className="mt-2 text-xs leading-5 text-[#5A5D64]">Show calls, gas, approvals, and exact token/native balance deltas.</p></div><div className="border border-[#E2DFD7] bg-white p-4"><strong className="text-sm">At signing</strong><p className="mt-2 text-xs leading-5 text-[#5A5D64]">Hand off to the user&apos;s wallet; use EIP-5792 batching where supported.</p></div></div>
             <MermaidDiagram chart={writeDiagram} />
           </section>
 
           <section id="mcp" className="mt-24 scroll-mt-20 border-t border-[#E2DFD7] pt-12">
-            <SectionLabel tone="text-[#2563EB]">05 / MCP</SectionLabel>
-            <h2 className="font-editorial text-3xl font-normal sm:text-4xl">One generic host, every protocol.</h2>
-            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">The MCP server exposes <code>search(terms)</code> for capability discovery, then <code>discover(name)</code> and <code>call(tool, args)</code>. Discovered tools use <code>&lt;namespace&gt;_&lt;tool&gt;</code> for reads and <code>tx_&lt;namespace&gt;_&lt;tool&gt;</code> for writes. Descriptions and Arkiv listing text are treated as untrusted publisher input.</p>
+            <SectionLabel tone="text-[#2563EB]">05 / Plugin</SectionLabel>
+            <h2 className="font-editorial text-3xl font-normal sm:text-4xl">One plugin, every protocol.</h2>
+            <p className="mt-4 max-w-2xl leading-7 text-[#5A5D64]">The plugin exposes <code>search(terms)</code> for capability discovery, then <code>discover(name)</code> and <code>call(tool, args)</code>. Discovered tools use <code>&lt;namespace&gt;_&lt;tool&gt;</code> for reads and <code>tx_&lt;namespace&gt;_&lt;tool&gt;</code> for writes. Descriptions and Arkiv listing text are treated as untrusted publisher input.</p>
             <div className="mt-8 grid gap-3 sm:grid-cols-3"><div className="border border-[#EDE9FE] border-t-4 border-t-[#8B5CF6] bg-[#F5F3FF] p-5"><code className="text-xs font-bold text-[#6D28D9]">search(terms)</code><p className="mt-2 text-sm leading-6 text-[#5A5D64]">Finds candidate ENS names through Arkiv, filters by chain, and drops stale digest mismatches.</p></div><div className="border border-[#BFDBFE] border-t-4 border-t-[#2563EB] bg-[#EFF6FF] p-5"><code className="text-xs font-bold text-[#1D4ED8]">discover(name)</code><p className="mt-2 text-sm leading-6 text-[#5A5D64]">Loads and validates a manifest, registers its tools, and notifies the client that the tool list changed.</p></div><div className="border border-[#A7F3D0] border-t-4 border-t-[#059669] bg-[#ECFDF5] p-5"><code className="text-xs font-bold text-[#047857]">call(tool, args)</code><p className="mt-2 text-sm leading-6 text-[#5A5D64]">Invokes a discovered read or prepares a write for simulation and wallet approval.</p></div></div>
             <MermaidDiagram chart={mcpDiagram} />
             <h3 className="mt-10 text-lg font-semibold">What is implemented today?</h3>
-            <p className="mt-2 text-sm leading-6 text-[#5A5D64]">The current SDK discovers manifests from ENS, verifies their digest and contract code, labels trust, executes reads, prepares and simulates writes, and returns a wallet signing handoff. The MCP server also reports write status. The protocol remains a draft, so use the security and limitations guidance when moving beyond the tested Sepolia flow.</p>
+            <p className="mt-2 text-sm leading-6 text-[#5A5D64]">The current SDK discovers manifests from ENS, verifies their digest and contract code, labels trust, executes reads, prepares and simulates writes, and returns a wallet signing handoff. The plugin also reports write status. The protocol remains a draft, so use the security and limitations guidance when moving beyond the tested Sepolia flow.</p>
             <div className="mt-10 flex flex-wrap gap-3">
               <Link href="/" className="inline-flex items-center gap-2 bg-[#16181B] px-5 py-3 text-xs font-bold uppercase tracking-wider text-white hover:bg-[#E57E25]">Explore the protocol <ArrowUpRight className="h-3.5 w-3.5" /></Link>
               <a href="https://github.com/Team-Managed/EVM-Web3MCP/blob/main/spec/SPEC.md" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-[#16181B] bg-white px-5 py-3 text-xs font-bold uppercase tracking-wider hover:bg-[#F4EEDF]">Read the full spec <ArrowUpRight className="h-3.5 w-3.5" /></a>
+              <NpmButton />
             </div>
           </section>
 

@@ -206,7 +206,7 @@ export function ChoosePath() {
                 Find protocols by what they can do.
               </h3>
               <p className="font-sans text-xs sm:text-sm text-[#5A5D64] leading-relaxed">
-                Agents can search Arkiv when a user describes a goal without naming a protocol. The host ranks capability terms, checks the listing&apos;s ENS digest, and runs full discovery before exposing any tool. Publishers refresh their listing every 30 days to stay discoverable.
+                Agents can search Arkiv when a user describes a goal without naming a protocol. The plugin ranks capability terms, checks the listing&apos;s ENS digest, and runs full discovery before exposing any tool. Publishers refresh their listing every 30 days to stay discoverable.
               </p>
             </div>
 
@@ -237,7 +237,7 @@ export function ChoosePath() {
           </div>
 
           {/* ================================================================= */}
-          {/* TILE 4: OpenAI Codex & Generic MCP Host                           */}
+          {/* TILE 4: One Plugin for Claude Code & Codex                         */}
           {/* ================================================================= */}
           <div className="lg:col-span-5 bg-[#FFFFFF] border border-[#E2DFD7] rounded-3xl p-7 sm:p-8 flex flex-col justify-between shadow-sharp-sand min-h-[420px] relative overflow-hidden isolate">
             <div className="pointer-events-none -z-10 absolute -bottom-3 -right-3 hidden sm:block"><BrandLogo brand="openai" /></div>
@@ -248,38 +248,38 @@ export function ChoosePath() {
                   <Terminal className="w-4 h-4" />
                   <span>Open Protocol</span>
                 </div>
-                <div className="flex items-center gap-2 text-[#5A5D64]"><BrandSticker brand="openai" compact /><span>stdio</span></div>
+                <div className="flex items-center gap-2 text-[#5A5D64]"><BrandSticker brand="openai" compact /><span>Plugin</span></div>
               </div>
 
               {/* Title & Copy */}
               <h3 className="font-sans font-bold text-2xl sm:text-3xl mb-3 text-[#111316] tracking-tight leading-snug">
-                Standard MCP for Any Agent.
+                One Plugin, Every Protocol.
               </h3>
               <p className="font-sans text-xs sm:text-sm text-[#5A5D64] leading-relaxed">
-                Runs in Claude Code and Codex today, and in any MCP host that can launch a stdio server. No protocol-specific code: each protocol's tools come from its manifest.
+                Install one plugin in Claude Code or Codex, with the server compiled in. No protocol-specific code: each protocol's tools come from its manifest.
               </p>
 
-              {/* Product Micro-UI: MCP Host Connection Panel */}
+              {/* Product Micro-UI: Plugin Panel */}
               <div className="mt-6 bg-[#FAF9F6] border border-[#E2DFD7] rounded-2xl p-4 text-xs font-mono space-y-2.5">
                 <div className="flex items-center justify-between pb-2 border-b border-[#E2DFD7] text-[11px]">
-                  <span className="text-[#5A5D64]">Transport:</span>
-                  <span className="font-bold text-[#111316]">stdio (JSON-RPC 2.0)</span>
+                  <span className="text-[#5A5D64]">Plugin:</span>
+                  <span className="font-bold text-[#111316]">web3mcp@evm-web3mcp</span>
                 </div>
                 <div className="space-y-1.5 text-[11px]">
                   <div className="flex items-center justify-between">
-                    <span className="text-[#5A5D64]">Server:</span>
-                    <span className="text-[#111316] font-semibold">@web3mcp/mcp@0.0.1</span>
+                    <span className="text-[#5A5D64]">Runs in:</span>
+                    <span className="text-[#111316] font-semibold">Claude Code · Codex</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[#5A5D64]">Discovery:</span>
-                    <span className="text-[#2563EB] font-semibold">tools/list (dynamic)</span>
+                    <span className="text-[#5A5D64]">Tools:</span>
+                    <span className="text-[#2563EB] font-semibold">added per protocol</span>
                   </div>
                 </div>
                 <div className="pt-2 border-t border-[#E2DFD7] flex items-center justify-between text-[10px] text-[#5A5D64]">
-                  <span>Status: Active Bridge</span>
+                  <span>Needs: Node 22+</span>
                   <span className="text-emerald-700 font-semibold flex items-center gap-1">
                     <span className="w-1.5 h-1.5 bg-emerald-500" />
-                    Listening on stdin
+                    Installed
                   </span>
                 </div>
               </div>
@@ -291,7 +291,7 @@ export function ChoosePath() {
                 href="/docs#plugins"
                 className="inline-flex items-center gap-1.5 text-xs font-mono uppercase tracking-wider text-[#111316] font-semibold hover:text-[#E57E25] transition-colors"
               >
-                <span>Configure Codex Server</span>
+                <span>Install the plugin</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </a>
             </div>

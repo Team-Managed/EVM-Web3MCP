@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Web3MCP — The Open Protocol Between Smart Contracts and AI Agents",
   description:
-    "Smart contracts publish tool manifests under their own ENS name. One generic MCP host discovers them, reads contracts, simulates writes, and routes signing to your wallet.",
+    "Smart contracts publish tool manifests under their own ENS name. One plugin for Claude Code and Codex discovers them, reads contracts, simulates writes, and routes signing to your wallet.",
   keywords: ["Ethereum", "ENS", "Model Context Protocol", "MCP", "AI Agents", "Smart Contracts", "ETHGlobal"],
   icons: {
     icon: "/logo.svg",

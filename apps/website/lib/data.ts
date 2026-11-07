@@ -12,7 +12,7 @@ export const GUARANTEES: GuaranteeCard[] = [
     tag: "Serverless",
     colorAccent: "bg-azure",
     title: "Zero Infrastructure",
-    description: "Contracts publish static text records to ENS. Protocols never host, run, or maintain an MCP server.",
+    description: "Contracts publish static text records to ENS. Protocols never host, run, or maintain a server.",
     specReference: "SPEC §1 (Publication)",
   },
   {
@@ -39,8 +39,8 @@ export const GUARANTEES: GuaranteeCard[] = [
   {
     tag: "Agnostic",
     colorAccent: "bg-ochre",
-    title: "Universal Host",
-    description: "One generic MCP host exposes discovered tools in Claude Code and Codex, or any MCP host that runs a stdio server.",
+    title: "One Plugin",
+    description: "One plugin for Claude Code and Codex, with the server compiled in, exposes every protocol's discovered tools.",
     specReference: "SPEC §5 (Exposure)",
   },
   {
@@ -57,13 +57,13 @@ export const FAQ_ITEMS: FaqItem[] = [
     question: "What is Web3MCP?",
     category: "Architecture",
     answer:
-      "Web3MCP is a draft open EVM standard for publishing smart-contract tool manifests under an ENS name. Its protocol design covers discovery, contract reads, write simulation, and user-approved signing through one generic MCP host.",
+      "Web3MCP is a draft open EVM standard for publishing smart-contract tool manifests under an ENS name. Its protocol design covers discovery, contract reads, write simulation, and user-approved signing through one plugin for Claude Code and Codex.",
   },
   {
-    question: "Do protocols have to host an MCP server?",
+    question: "Do protocols have to run a server?",
     category: "Architecture",
     answer:
-      "No. Publishers put the manifest and digest in ENS text records; the generic host discovers, verifies, reads, simulates, and hands writes to the user wallet. A development-only manifest directory is also available for fixture testing.",
+      "No. Publishers put the manifest and digest in ENS text records; the Web3MCP plugin discovers, verifies, reads, simulates, and hands writes to the user wallet. A development-only manifest directory is also available for fixture testing.",
   },
   {
     question: "Can an AI agent sign transactions or move funds?",
@@ -75,18 +75,18 @@ export const FAQ_ITEMS: FaqItem[] = [
     question: "Why is ENS the source of truth?",
     category: "ENS",
     answer:
-      "The protocol uses the publisher’s ENS name as the authoritative registry. org.web3mcp.manifest stores the exact JSON and org.web3mcp.digest stores its keccak256 digest. An index such as Arkiv may help agents find names, but a host must re-read and verify ENS before using a manifest.",
+      "The protocol uses the publisher’s ENS name as the authoritative registry. org.web3mcp.manifest stores the exact JSON and org.web3mcp.digest stores its keccak256 digest. An index such as Arkiv may help agents find names, but the plugin re-reads and verifies ENS before using a manifest.",
   },
   {
     question: "What does 'Owner-Verified' mean?",
     category: "Security",
     answer:
-      "A contract is Owner-Verified when its ENS primary name points back to the publishing name. If that reverse relationship is absent, the contract is labeled Name-Only: the publishing ENS name remains the authority, but the host should request extra confirmation.",
+      "A contract is Owner-Verified when its ENS primary name points back to the publishing name. If that reverse relationship is absent, the contract is labeled Name-Only: the publishing ENS name remains the authority, but the plugin asks for extra confirmation.",
   },
   {
     question: "What is implemented today?",
     category: "Integration",
     answer:
-      "The SDK discovers and verifies ENS manifests, checks contract code and trust, executes reads, prepares and simulates writes, and returns a local wallet signing handoff. The MCP server also reports write status. The current tested integration targets Ethereum Sepolia; configure a compatible chain client and RPC for other EVM deployments.",
+      "The SDK discovers and verifies ENS manifests, checks contract code and trust, executes reads, prepares and simulates writes, and returns a local wallet signing handoff. The plugin also reports write status. The current tested integration targets Ethereum Sepolia; configure a compatible chain client and RPC for other EVM deployments.",
   },
 ];

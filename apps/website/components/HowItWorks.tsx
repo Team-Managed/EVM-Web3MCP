@@ -113,7 +113,7 @@ export function HowItWorks() {
                 Discover & simulate.
               </h3>
               <p className="font-sans text-xs sm:text-sm text-[#5A5D64] leading-relaxed">
-                AI hosts resolve protocols from ENS, query live on-chain state via gasless eth_call, and simulate every write with eth_simulateV1 to show the exact balance changes.
+                The plugin resolves protocols from ENS, queries live on-chain state via gasless eth_call, and simulates every write with eth_simulateV1 to show the exact balance changes.
               </p>
             </div>
 
