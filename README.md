@@ -53,28 +53,11 @@ No company runs a server in the middle. Protocols publish to ENS and Arkiv with 
 ## Architecture
 
 ```mermaid
-flowchart TD
-    User["User Prompt\n('Swap 0.01 ETH for USDC on agentswap.web3mcp.eth')"]
-    Agent["AI Agent\n(Claude Code / Codex / Cursor)"]
-    MCP["Generic MCP Server\n(@web3mcp/mcp)"]
-    ENS["ENS Text Records\n(org.web3mcp.manifest + digest)"]
-    Chain["EVM / Sepolia\n(Code check, selectors, proxies)"]
-    Sim["Simulation\n(eth_simulateV1 @ head - 2)"]
-    SignUI["Local Signing Page\n(http://127.0.0.1:<port>/approve/<id>)"]
-    Wallet["User Wallet\n(MetaMask / Rabby / EIP-5792)"]
-    Uniswap["Protocol Execution\n(AgentSwap + Uniswap v4 + Chainlink)"]
-
-    User --> Agent
-    Agent --> MCP
-    MCP -->|1. Resolve & Verify Digest| ENS
-    MCP -->|2. Check Bytecode & Trust| Chain
-    MCP -->|3. Dry-run / Simulate| Sim
-    Sim -->|4. Display Deltas & Steps| SignUI
-    SignUI -->|5. User Approves & Signs| Wallet
-    Wallet -->|6. Submit Transaction| Uniswap
-    Uniswap -->|7. Receipt Confirmation| MCP
-    MCP -->|8. Structured Result| Agent
-    Agent -->|9. Final Response| User
+flowchart LR
+    Agent["AI Agent\n(Claude / Codex)"] -->|1. Resolve| ENS["ENS Records\n(Manifest & Digest)"]
+    ENS -->|2. Verify| Chain["EVM Contracts\n(Selectors & Trust)"]
+    Chain -->|3. Simulate| Sim["eth_simulateV1\n(Balance Deltas)"]
+    Sim -->|4. Review & Sign| Wallet["Local Signing Page\n(MetaMask / Rabby)"]
 ```
 
 ## How it works
@@ -98,7 +81,7 @@ Details: [spec/SPEC.md](spec/SPEC.md).
 | `apps/publisher` | `web3mcp-publish` CLI: validate a manifest, check it against the chain, print the ENS records to publish, list a published name on the Arkiv search index, and search it |
 | `apps/website` | Hosted website and documentation: [evm.web3mcp.org](https://evm.web3mcp.org) |
 | `apps/explorer` | Hosted read-only explorer (planned) |
-| `contracts` | Foundry: `AgentSwap`, the demo contract |
+| `contracts` | Foundry: `AgentSwap`, live Uniswap v4 contract |
 | `spec` | Specification and shared test fixtures |
 | `arkiv` | How we use Arkiv: schema, feedback, and the write-ups for Arkiv's prize |
 
@@ -156,7 +139,7 @@ Contracts need [Foundry](https://getfoundry.sh). The tests fork Sepolia and swap
 cd contracts && forge test --fork-url https://ethereum-sepolia-rpc.publicnode.com --fork-block-number $(( $(cast block-number --rpc-url https://ethereum-sepolia-rpc.publicnode.com) - 5 ))
 ```
 
-## Demo contract
+## Live on Sepolia: AgentSwap
 
 `AgentSwap` (`contracts/src/AgentSwap.sol`) is published as `agentswap.web3mcp.eth`. It swaps ETH and USDC on Uniswap v4's Sepolia pool, quotes through Uniswap's own Quoter, and refuses any swap that pays more than 3% below Chainlink's ETH/USD price. It holds no funds. Its manifest is `spec/fixtures/valid/agentswap.web3mcp.eth.json`.
 
@@ -188,7 +171,7 @@ Set `WEB3MCP_ARKIV_KEY` to an [Arkiv access key](https://hub.arkiv.network/acces
 
 ## Status
 
-Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes that are simulated, shown on a local signing page and signed in your own wallet. Uniswap quotes run through dry-run reads. The demo contract swaps on Uniswap v4 with a Chainlink price check and passes its tests on a Sepolia fork. It's deployed and published at `agentswap.web3mcp.eth`. Published names can be listed on an Arkiv index, so an agent finds a protocol from a goal ("swap my ETH") when the user names none. Next: the explorer.
+Working on Sepolia: discovery from ENS with trust checks (proxies included), reads with ENS-name inputs and formatted amounts, and writes that are simulated, shown on a local signing page and signed in your own wallet. Uniswap quotes run through dry-run reads. AgentSwap swaps on Uniswap v4 with a Chainlink price check and passes its tests on a Sepolia fork. It's deployed and published at `agentswap.web3mcp.eth`. Published names can be listed on an Arkiv index, so an agent finds a protocol from a goal ("swap my ETH") when the user names none. Next: the explorer.
 
 To try signing, set `WEB3MCP_ACCOUNT` to your Sepolia wallet before opening Claude Code in this repo, then ask it to swap 0.001 ETH for USDC on `agentswap.web3mcp.eth`. Get test ETH from a Sepolia faucet and test USDC from faucet.circle.com.
 
